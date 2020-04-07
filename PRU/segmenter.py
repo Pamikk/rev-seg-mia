@@ -11,10 +11,11 @@ import systemsetup
 from tqdm import tqdm
 class Segmenter:
 
-    def __init__(self, expConfig, trainDataLoader, valDataLoader, challengeValDataLoader):
+    def __init__(self, expConfig, trainDataLoader, valDataLoader, challengeValDataLoader,trainvalDataLoader):
         self.expConfig = expConfig
         self.trainDataLoader = trainDataLoader
         self.valDataLoader = valDataLoader
+        self.trainvalDataLoader = valDataLoader
         self.challengeValDataLoader = challengeValDataLoader
         self.experiment = expConfig.experiment
         self.checkpointsBasePathLoad = systemsetup.CHECKPOINT_BASE_PATH
@@ -30,12 +31,12 @@ class Segmenter:
         self.bestMovingAvgEpoch = 1e9
         self.EXPONENTIAL_MOVING_AVG_ALPHA = 0.95
         self.EARLY_STOPPING_AFTER_EPOCHS = 120
-        self.log = open(self.expConfig.EXPERIMENT_NAME+'log.txt','w')
+        self.log = open(self.expConfig.EXPERIMENT_NAME+'_log.txt','a+')
 
         # restore model if requested
         if hasattr(expConfig, "RESTORE_ID") and hasattr(expConfig, "RESTORE_EPOCH"):
             self.startFromEpoch = self.loadFromDisk(expConfig.RESTORE_ID, expConfig.RESTORE_EPOCH) + 1
-            print("Loading checkpoint with id {} at epoch {}".format(expConfig.RESTORE_ID, expConfig.RESTORE_EPOCH))
+            print("Loading checkpoint with id {} at epoch {}".format(expConfig.RESTORE_ID, self.startFromEpoch-1))
 
         # Run on GPU or CPU
         if torch.cuda.is_available():
@@ -67,7 +68,7 @@ class Segmenter:
 
     def makePredictions(self):
         # model is already loaded from disk by constructor
-
+        
         expConfig = self.expConfig
         assert(hasattr(expConfig, "RESTORE_ID"))
         assert(hasattr(expConfig, "RESTORE_EPOCH"))
@@ -93,28 +94,20 @@ class Segmenter:
 
                 #predict labels and bring into required shape
                 outputs = expConfig.net(inputs)
-                outputs = outputs[:, :, :, :, :155]
-                s = outputs.shape
-                fullsize = outputs.new_zeros((s[0], s[1], 240, 240, 155))
-                if xOffset + s[2] > 240:
-                    outputs = outputs[:, :, :240-xOffset, :, :]
-                if yOffset + s[3] > 240:
-                    outputs = outputs[:, :, :, :240 - yOffset, :]
-                if zOffset + s[4] > 155:
-                    outputs = outputs[:, :, :, :, :155 - zOffset]
-                fullsize[:, :, xOffset:xOffset+s[2], yOffset:yOffset+s[3], zOffset:zOffset+s[4]] = outputs
+                n,c,h,w,d = outputs.shape
+                nh,nw,nd = h+xOffset,w+yOffset,d+zOffset
+                fullsize = torch.zeros(n,c,nh,nw,nd)
+                fullsize[:,xOffset:nh,yOffset:nw,zOffset:nd] = outputs
 
                 #binarize output
-                wt, tc, et = fullsize.chunk(3, dim=1)
+                A,P = fullsize.chunk(2, dim=1)
                 s = fullsize.shape
-                wt = (wt > 0.5).view(s[2], s[3], s[4])
-                tc = (tc > 0.5).view(s[2], s[3], s[4])
-                et = (et > 0.5).view(s[2], s[3], s[4])
+                A = (A > 0.5).view(s[2], s[3], s[4])
+                P = (P > 0.5).view(s[2], s[3], s[4])
 
                 result = fullsize.new_zeros((s[2], s[3], s[4]), dtype=torch.uint8)
-                result[wt] = 2
-                result[tc] = 1
-                result[et] = 4
+                result[A] = 1
+                result[P] = 2
 
                 npResult = result.cpu().numpy()
                 path = os.path.join(basePath, "{}.nii.gz".format(pids[0]))
@@ -190,13 +183,122 @@ class Segmenter:
             if expConfig.SAVE_CHECKPOINTS:
                 if epoch % expConfig.SAVE_EVERY_K_EPOCHS == expConfig.SAVE_EVERY_K_EPOCHS - 1:
                     self.saveToDisk(epoch)
+                    self.log.flush()
 
             epoch = epoch + 1
 
         #print best mean dice
         print("Best mean dice: {:.4f} at epoch {}".format(self.bestMeanDice, self.bestMeanDiceEpoch))
         self.saveToDisk(epoch)
+    def valtrain(self,epoch):
+        #set net up for inference
+        self.expConfig.net.eval()
 
+        expConfig = self.expConfig
+        hausdorffEnabled = (expConfig.LOG_HAUSDORFF_EVERY_K_EPOCHS > 0)
+        logHausdorff = hausdorffEnabled and epoch % expConfig.LOG_HAUSDORFF_EVERY_K_EPOCHS == (expConfig.LOG_HAUSDORFF_EVERY_K_EPOCHS - 1)
+
+        startTime = time.time()
+        with torch.no_grad():
+            diceA, diceP = [], []
+            sensA, sensP = [], []
+            specA, specP = [], []
+            hdA, hdP = [], []
+            #buckets = np.zeros(5)
+
+            for i, data in enumerate(self.trainvalDataLoader):
+
+                # feed inputs through neural net
+                inputs, _, labels = data
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                outputs = expConfig.net(inputs)
+
+                if expConfig.TRAIN_ORIGINAL_CLASSES:
+                    outputsOriginal5 = outputs
+                    outputs = torch.argmax(outputs, 1)
+                    #hist, _ = np.histogram(outputs.cpu().numpy(), 5, (0, 4))
+                    #buckets = buckets + hist
+                    A = bratsUtils.getAMask(outputs)
+                    P = bratsUtils.getPMask(outputs)
+
+                    labels = torch.argmax(labels, 1)
+                    AMask = bratsUtils.getAMask(labels)
+                    PMask = bratsUtils.getPMask(labels)
+
+                else:
+
+                    #separate outputs channelwise
+                    A,P = outputs.chunk(2, dim=1)
+                    s = A.shape
+                    A = A.view(s[0], s[2], s[3], s[4])
+                    P = P.view(s[0], s[2], s[3], s[4])
+
+                    AMask,PMask = labels.chunk(2, dim=1)
+                    s = AMask.shape
+                    AMask = AMask.view(s[0], s[2], s[3], s[4])
+                    PMask = PMask.view(s[0], s[2], s[3], s[4])
+
+                #TODO: add special evaluation metrics for original 5
+
+                #get dice metrics
+                diceA.append(bratsUtils.dice(A, AMask))
+                diceP.append(bratsUtils.dice(P, PMask))
+
+                #get sensitivity metrics
+                sensA.append(bratsUtils.sensitivity(A, AMask))
+                sensP.append(bratsUtils.sensitivity(P, PMask))
+
+                #get specificity metrics
+                specA.append(bratsUtils.specificity(A, AMask))
+                specP.append(bratsUtils.specificity(P, PMask))
+
+                #get hausdorff distance
+                if logHausdorff:
+                    lists = [hdA, hdP]
+                    results = [A, P]
+                    masks = [AMask, PMask]
+                    for i in range(2):
+                        hd95 = bratsUtils.getHd95(results[i], masks[i])
+                        #ignore edgcases in which no distance could be calculated
+                        if (hd95 >= 0):
+                            lists[i].append(hd95)
+
+        #calculate mean dice scores
+        meanDiceA = np.mean(diceA)
+        meanDiceP = np.mean(diceP)
+        meanDice = np.mean([meanDiceA, meanDiceP])
+        if (meanDice > self.bestMeanDice):
+            self.bestMeanDice = meanDice
+            self.bestMeanDiceEpoch = epoch
+
+        #update moving avg
+        self._updateMovingAvg(meanDice, epoch)
+
+        #print metrics
+        print("------ Train Validation epoch {} ------".format(epoch))
+        print("Dice        A: {:.4f} P: {:.4f}  Mean: {:.4f} MovingAvg: {:.4f}".format(meanDiceA, meanDiceP, meanDice, self.movingAvg))
+        print("Sensitivity A: {:.4f} P: {:.4f} ".format(np.mean(sensA), np.mean(sensP)))
+        print("Specificity A: {:.4f} P: {:.4f} ".format(np.mean(specA), np.mean(specP)))
+        self.log.write("------ Train Validation epoch {} ------\n".format(epoch))
+        self.log.write("Dice        A: {:.4f} P: {:.4f}  Mean: {:.4f} MovingAvg: {:.4f}\n".format(meanDiceA, meanDiceP,  meanDice, self.movingAvg))
+        if logHausdorff:
+            print("Hausdorff   A: {:6.2f} P: {:6.2f}\n ".format(np.mean(hdA), np.mean(hdP), ))
+            self.log.write("Hausdorff   A: {:6.2f} P: {:6.2f}\n ".format(np.mean(hdA), np.mean(hdP)))
+
+        #log metrics
+        if self.experiment is not None:
+            self.experiment.log_metrics({"A": meanDiceA, "P": meanDiceP, "mean": meanDice, "movingAvg": self.movingAvg}, "dice", epoch)
+            self.experiment.log_metrics({"A": np.mean(sensA), "P": np.mean(sensP)}, "sensitivity", epoch)
+            self.experiment.log_metrics({"A": np.mean(specA), "P": np.mean(specP)}, "specificity", epoch)
+            if logHausdorff:
+                self.experiment.log_metrics({"A": np.mean(hdA), "P:": np.mean(hdP)}, "hausdorff", epoch)
+
+        #print(buckets)
+
+        #log validation time
+        if expConfig.LOG_VALIDATION_TIME:
+            print("Time for validation: {:.2f}s".format(time.time() - startTime))
+        print("--------------------------------")
     def validate(self, epoch):
 
         #set net up for inference
@@ -208,10 +310,10 @@ class Segmenter:
 
         startTime = time.time()
         with torch.no_grad():
-            diceWT, diceTC, diceET = [], [], []
-            sensWT, sensTC, sensET = [], [], []
-            specWT, specTC, specET = [], [], []
-            hdWT, hdTC, hdET = [], [], []
+            diceA, diceP = [], []
+            sensA, sensP = [], []
+            specA, specP = [], []
+            hdA, hdP = [], []
             #buckets = np.zeros(5)
 
             for i, data in enumerate(self.valDataLoader):
@@ -226,63 +328,55 @@ class Segmenter:
                     outputs = torch.argmax(outputs, 1)
                     #hist, _ = np.histogram(outputs.cpu().numpy(), 5, (0, 4))
                     #buckets = buckets + hist
-                    wt = bratsUtils.getWTMask(outputs)
-                    tc = bratsUtils.getTCMask(outputs)
-                    et = bratsUtils.getETMask(outputs)
+                    A = bratsUtils.getAMask(outputs)
+                    P = bratsUtils.getPMask(outputs)
 
                     labels = torch.argmax(labels, 1)
-                    wtMask = bratsUtils.getWTMask(labels)
-                    tcMask = bratsUtils.getTCMask(labels)
-                    etMask = bratsUtils.getETMask(labels)
+                    AMask = bratsUtils.getAMask(labels)
+                    PMask = bratsUtils.getPMask(labels)
 
                 else:
 
                     #separate outputs channelwise
-                    wt, tc, et = outputs.chunk(3, dim=1)
-                    s = wt.shape
-                    wt = wt.view(s[0], s[2], s[3], s[4])
-                    tc = tc.view(s[0], s[2], s[3], s[4])
-                    et = et.view(s[0], s[2], s[3], s[4])
+                    A,P = outputs.chunk(2, dim=1)
+                    s = A.shape
+                    A = A.view(s[0], s[2], s[3], s[4])
+                    P = P.view(s[0], s[2], s[3], s[4])
 
-                    wtMask, tcMask, etMask = labels.chunk(3, dim=1)
-                    s = wtMask.shape
-                    wtMask = wtMask.view(s[0], s[2], s[3], s[4])
-                    tcMask = tcMask.view(s[0], s[2], s[3], s[4])
-                    etMask = etMask.view(s[0], s[2], s[3], s[4])
+                    AMask,PMask = labels.chunk(2, dim=1)
+                    s = AMask.shape
+                    AMask = AMask.view(s[0], s[2], s[3], s[4])
+                    PMask = PMask.view(s[0], s[2], s[3], s[4])
 
                 #TODO: add special evaluation metrics for original 5
 
                 #get dice metrics
-                diceWT.append(bratsUtils.dice(wt, wtMask))
-                diceTC.append(bratsUtils.dice(tc, tcMask))
-                diceET.append(bratsUtils.dice(et, etMask))
+                diceA.append(bratsUtils.dice(A, AMask))
+                diceP.append(bratsUtils.dice(P, PMask))
 
                 #get sensitivity metrics
-                sensWT.append(bratsUtils.sensitivity(wt, wtMask))
-                sensTC.append(bratsUtils.sensitivity(tc, tcMask))
-                sensET.append(bratsUtils.sensitivity(et, etMask))
+                sensA.append(bratsUtils.sensitivity(A, AMask))
+                sensP.append(bratsUtils.sensitivity(P, PMask))
 
                 #get specificity metrics
-                specWT.append(bratsUtils.specificity(wt, wtMask))
-                specTC.append(bratsUtils.specificity(tc, tcMask))
-                specET.append(bratsUtils.specificity(et, etMask))
+                specA.append(bratsUtils.specificity(A, AMask))
+                specP.append(bratsUtils.specificity(P, PMask))
 
                 #get hausdorff distance
                 if logHausdorff:
-                    lists = [hdWT, hdTC, hdET]
-                    results = [wt, tc, et]
-                    masks = [wtMask, tcMask, etMask]
-                    for i in range(3):
+                    lists = [hdA, hdP]
+                    results = [A, P]
+                    masks = [AMask, PMask]
+                    for i in range(2):
                         hd95 = bratsUtils.getHd95(results[i], masks[i])
                         #ignore edgcases in which no distance could be calculated
                         if (hd95 >= 0):
                             lists[i].append(hd95)
 
         #calculate mean dice scores
-        meanDiceWT = np.mean(diceWT)
-        meanDiceTC = np.mean(diceTC)
-        meanDiceET = np.mean(diceET)
-        meanDice = np.mean([meanDiceWT, meanDiceTC, meanDiceET])
+        meanDiceA = np.mean(diceA)
+        meanDiceP = np.mean(diceP)
+        meanDice = np.mean([meanDiceA, meanDiceP])
         if (meanDice > self.bestMeanDice):
             self.bestMeanDice = meanDice
             self.bestMeanDiceEpoch = epoch
@@ -292,22 +386,22 @@ class Segmenter:
 
         #print metrics
         print("------ Validation epoch {} ------".format(epoch))
-        print("Dice        WT: {:.4f} TC: {:.4f} ET: {:.4f} Mean: {:.4f} MovingAvg: {:.4f}".format(meanDiceWT, meanDiceTC, meanDiceET, meanDice, self.movingAvg))
-        print("Sensitivity WT: {:.4f} TC: {:.4f} ET: {:.4f}".format(np.mean(sensWT), np.mean(sensTC), np.mean(sensET)))
-        print("Specificity WT: {:.4f} TC: {:.4f} ET: {:.4f}".format(np.mean(specWT), np.mean(specTC), np.mean(specET)))
-        self.log.write("------ Validation epoch {} ------".format(epoch))
-        self.log.write("Dice        WT: {:.4f} TC: {:.4f} ET: {:.4f} Mean: {:.4f} MovingAvg: {:.4f}".format(meanDiceWT, meanDiceTC, meanDiceET, meanDice, self.movingAvg))
+        print("Dice        A: {:.4f} P: {:.4f}  Mean: {:.4f} MovingAvg: {:.4f}".format(meanDiceA, meanDiceP, meanDice, self.movingAvg))
+        print("Sensitivity A: {:.4f} P: {:.4f} ".format(np.mean(sensA), np.mean(sensP)))
+        print("Specificity A: {:.4f} P: {:.4f} ".format(np.mean(specA), np.mean(specP)))
+        self.log.write("------ Validation epoch {} ------\n".format(epoch))
+        self.log.write("Dice        A: {:.4f} P: {:.4f}  Mean: {:.4f} MovingAvg: {:.4f}\n".format(meanDiceA, meanDiceP,  meanDice, self.movingAvg))
         if logHausdorff:
-            print("Hausdorff   WT: {:6.2f} TC: {:6.2f} ET: {:6.2f}".format(np.mean(hdWT), np.mean(hdTC), np.mean(hdET)))
-            self.log("Hausdorff   WT: {:6.2f} TC: {:6.2f} ET: {:6.2f}".format(np.mean(hdWT), np.mean(hdTC), np.mean(hdET)))
+            print("Hausdorff   A: {:6.2f} P: {:6.2f}\n ".format(np.mean(hdA), np.mean(hdP), ))
+            self.log.write("Hausdorff   A: {:6.2f} P: {:6.2f} ".format(np.mean(hdA), np.mean(hdP)))
 
         #log metrics
         if self.experiment is not None:
-            self.experiment.log_metrics({"wt": meanDiceWT, "tc": meanDiceTC, "et":  meanDiceET, "mean": meanDice, "movingAvg": self.movingAvg}, "dice", epoch)
-            self.experiment.log_metrics({"wt": np.mean(sensWT), "tc": np.mean(sensTC), "et": np.mean(sensET)}, "sensitivity", epoch)
-            self.experiment.log_metrics({"wt": np.mean(specWT), "tc": np.mean(specTC), "et": np.mean(specET)}, "specificity", epoch)
+            self.experiment.log_metrics({"A": meanDiceA, "P": meanDiceP, "mean": meanDice, "movingAvg": self.movingAvg}, "dice", epoch)
+            self.experiment.log_metrics({"A": np.mean(sensA), "P": np.mean(sensP)}, "sensitivity", epoch)
+            self.experiment.log_metrics({"A": np.mean(specA), "P": np.mean(specP)}, "specificity", epoch)
             if logHausdorff:
-                self.experiment.log_metrics({"wt": np.mean(hdWT), "tc:": np.mean(hdTC), "et": np.mean(hdET)}, "hausdorff", epoch)
+                self.experiment.log_metrics({"A": np.mean(hdA), "P:": np.mean(hdP)}, "hausdorff", epoch)
 
         #print(buckets)
 
@@ -359,13 +453,13 @@ class Segmenter:
 
         #save dict
         basePath = self.checkpointsBasePathSave + "{}".format(self.expConfig.id)
-        path = basePath + "/best.pt".format(epoch)
+        path = basePath + "/ebest.pt".format(epoch)
         if not os.path.exists(basePath):
             os.makedirs(basePath)
         torch.save(saveDict, path)
 
     def loadFromDisk(self, id, epoch):
-        path = self._getCheckpointPathLoad(id, epoch)
+        path = self._gePheckpointPathLoad(id, epoch)
         checkpoint = torch.load(path)
         self.expConfig.net.load_state_dict(checkpoint["net_state_dict"])
 
@@ -401,7 +495,7 @@ class Segmenter:
 
         return checkpoint["epoch"]
 
-    def _getCheckpointPathLoad(self, id, epoch):
+    def _gePheckpointPathLoad(self, id, epoch):
         return self.checkpointsBasePathLoad + "{}/e_{}.pt".format(id, epoch)
 
     def _updateMovingAvg(self, validationMean, epoch):
