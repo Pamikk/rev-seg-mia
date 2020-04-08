@@ -150,7 +150,6 @@ class NoNewNet(nn.Module):
         self.levels = 5
         self.firstConv = nn.Conv3d(1,channels,1,bias=True)
         self.lastConv = nn.Conv3d(channels, 2, 1, bias=True)
-
         #create encoder levels
         encoderModules = []
         encoderModules.append(EncoderModule(channels, channels,4, False, True))
