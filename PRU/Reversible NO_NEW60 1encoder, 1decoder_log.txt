@@ -1,0 +1,328 @@
+------ Validation epoch 0 ------
+Dice        A: 0.6794 P: 0.6561  Mean: 0.6677 MovingAvg: 0.6677
+------ Validation epoch 1 ------
+Dice        A: 0.7407 P: 0.7162  Mean: 0.7285 MovingAvg: 0.6708
+------ Validation epoch 2 ------
+Dice        A: 0.7776 P: 0.7573  Mean: 0.7674 MovingAvg: 0.6756
+------ Validation epoch 3 ------
+Dice        A: 0.8139 P: 0.7947  Mean: 0.8043 MovingAvg: 0.6820
+------ Validation epoch 4 ------
+Dice        A: 0.7474 P: 0.7764  Mean: 0.7619 MovingAvg: 0.6860
+------ Validation epoch 5 ------
+Dice        A: 0.8307 P: 0.7990  Mean: 0.8148 MovingAvg: 0.6925
+------ Validation epoch 6 ------
+Dice        A: 0.8035 P: 0.7995  Mean: 0.8015 MovingAvg: 0.6979
+------ Validation epoch 7 ------
+Dice        A: 0.8322 P: 0.8215  Mean: 0.8268 MovingAvg: 0.7044
+------ Validation epoch 8 ------
+Dice        A: 0.8453 P: 0.8226  Mean: 0.8339 MovingAvg: 0.7108
+------ Validation epoch 9 ------
+Dice        A: 0.8137 P: 0.7790  Mean: 0.7963 MovingAvg: 0.7151
+------ Validation epoch 10 ------
+Dice        A: 0.8143 P: 0.8262  Mean: 0.8203 MovingAvg: 0.7204
+------ Validation epoch 11 ------
+Dice        A: 0.8407 P: 0.8140  Mean: 0.8273 MovingAvg: 0.7257
+------ Validation epoch 12 ------
+Dice        A: 0.8164 P: 0.7790  Mean: 0.7977 MovingAvg: 0.7293
+------ Validation epoch 13 ------
+Dice        A: 0.8499 P: 0.8228  Mean: 0.8364 MovingAvg: 0.7347
+------ Validation epoch 14 ------
+Dice        A: 0.8366 P: 0.8325  Mean: 0.8346 MovingAvg: 0.7397
+------ Validation epoch 15 ------
+Dice        A: 0.8454 P: 0.8241  Mean: 0.8347 MovingAvg: 0.7444
+------ Validation epoch 16 ------
+Dice        A: 0.8134 P: 0.8033  Mean: 0.8083 MovingAvg: 0.7476
+------ Validation epoch 17 ------
+Dice        A: 0.8406 P: 0.8170  Mean: 0.8288 MovingAvg: 0.7517
+------ Validation epoch 18 ------
+Dice        A: 0.8505 P: 0.8151  Mean: 0.8328 MovingAvg: 0.7557
+------ Validation epoch 19 ------
+Dice        A: 0.8371 P: 0.8215  Mean: 0.8293 MovingAvg: 0.7594
+------ Validation epoch 20 ------
+Dice        A: 0.8551 P: 0.8219  Mean: 0.8385 MovingAvg: 0.7634
+------ Validation epoch 21 ------
+Dice        A: 0.8395 P: 0.8308  Mean: 0.8352 MovingAvg: 0.7670
+------ Validation epoch 22 ------
+Dice        A: 0.8097 P: 0.8060  Mean: 0.8079 MovingAvg: 0.7690
+------ Validation epoch 23 ------
+Dice        A: 0.8431 P: 0.7956  Mean: 0.8194 MovingAvg: 0.7715
+------ Validation epoch 24 ------
+Dice        A: 0.8587 P: 0.8161  Mean: 0.8374 MovingAvg: 0.7748
+------ Validation epoch 25 ------
+Dice        A: 0.8356 P: 0.8336  Mean: 0.8346 MovingAvg: 0.7778
+------ Validation epoch 26 ------
+Dice        A: 0.8589 P: 0.8220  Mean: 0.8404 MovingAvg: 0.7809
+------ Validation epoch 27 ------
+Dice        A: 0.8519 P: 0.8272  Mean: 0.8395 MovingAvg: 0.7839
+------ Validation epoch 28 ------
+Dice        A: 0.8398 P: 0.8279  Mean: 0.8339 MovingAvg: 0.7864
+------ Validation epoch 29 ------
+Dice        A: 0.8304 P: 0.8176  Mean: 0.8240 MovingAvg: 0.7882
+------ Validation epoch 30 ------
+Dice        A: 0.8571 P: 0.8328  Mean: 0.8450 MovingAvg: 0.7911
+------ Validation epoch 31 ------
+Dice        A: 0.8596 P: 0.8408  Mean: 0.8502 MovingAvg: 0.7940
+------ Validation epoch 32 ------
+Dice        A: 0.8518 P: 0.8233  Mean: 0.8376 MovingAvg: 0.7962
+------ Validation epoch 33 ------
+Dice        A: 0.8637 P: 0.8237  Mean: 0.8437 MovingAvg: 0.7986
+------ Validation epoch 34 ------
+Dice        A: 0.8547 P: 0.8325  Mean: 0.8436 MovingAvg: 0.8008
+------ Validation epoch 35 ------
+Dice        A: 0.8607 P: 0.8304  Mean: 0.8455 MovingAvg: 0.8031
+------ Validation epoch 36 ------
+Dice        A: 0.8394 P: 0.8175  Mean: 0.8284 MovingAvg: 0.8043
+------ Validation epoch 37 ------
+Dice        A: 0.8099 P: 0.7878  Mean: 0.7989 MovingAvg: 0.8041
+------ Validation epoch 38 ------
+Dice        A: 0.8737 P: 0.8307  Mean: 0.8522 MovingAvg: 0.8065
+------ Validation epoch 39 ------
+Dice        A: 0.8686 P: 0.8276  Mean: 0.8481 MovingAvg: 0.8086
+------ Validation epoch 40 ------
+Dice        A: 0.8642 P: 0.8299  Mean: 0.8471 MovingAvg: 0.8105
+------ Validation epoch 41 ------
+Dice        A: 0.8658 P: 0.8271  Mean: 0.8465 MovingAvg: 0.8123
+------ Validation epoch 42 ------
+Dice        A: 0.8643 P: 0.8229  Mean: 0.8436 MovingAvg: 0.8138
+------ Validation epoch 43 ------
+Dice        A: 0.8637 P: 0.8307  Mean: 0.8472 MovingAvg: 0.8155
+------ Validation epoch 44 ------
+Dice        A: 0.8592 P: 0.8132  Mean: 0.8362 MovingAvg: 0.8165
+------ Validation epoch 45 ------
+Dice        A: 0.8645 P: 0.8291  Mean: 0.8468 MovingAvg: 0.8181
+------ Validation epoch 46 ------
+Dice        A: 0.8605 P: 0.8242  Mean: 0.8424 MovingAvg: 0.8193
+------ Validation epoch 47 ------
+Dice        A: 0.8528 P: 0.8242  Mean: 0.8385 MovingAvg: 0.8202
+------ Validation epoch 48 ------
+Dice        A: 0.8567 P: 0.8199  Mean: 0.8383 MovingAvg: 0.8211
+------ Validation epoch 49 ------
+Dice        A: 0.8738 P: 0.8464  Mean: 0.8601 MovingAvg: 0.8231
+------ Validation epoch 50 ------
+Dice        A: 0.8690 P: 0.8296  Mean: 0.8493 MovingAvg: 0.8244
+------ Validation epoch 51 ------
+Dice        A: 0.8698 P: 0.8291  Mean: 0.8495 MovingAvg: 0.8256
+------ Validation epoch 52 ------
+Dice        A: 0.8677 P: 0.8313  Mean: 0.8495 MovingAvg: 0.8268
+------ Validation epoch 53 ------
+Dice        A: 0.8695 P: 0.8165  Mean: 0.8430 MovingAvg: 0.8277
+------ Validation epoch 54 ------
+Dice        A: 0.8635 P: 0.8330  Mean: 0.8483 MovingAvg: 0.8287
+------ Validation epoch 55 ------
+Dice        A: 0.8697 P: 0.8362  Mean: 0.8530 MovingAvg: 0.8299
+------ Validation epoch 56 ------
+Dice        A: 0.8734 P: 0.8445  Mean: 0.8590 MovingAvg: 0.8313
+------ Validation epoch 57 ------
+Dice        A: 0.8730 P: 0.8385  Mean: 0.8557 MovingAvg: 0.8326
+------ Validation epoch 58 ------
+Dice        A: 0.8729 P: 0.8327  Mean: 0.8528 MovingAvg: 0.8336
+------ Validation epoch 59 ------
+Dice        A: 0.8644 P: 0.8293  Mean: 0.8469 MovingAvg: 0.8342
+------ Validation epoch 60 ------
+Dice        A: 0.8691 P: 0.8280  Mean: 0.8486 MovingAvg: 0.8350
+------ Validation epoch 61 ------
+Dice        A: 0.8561 P: 0.8264  Mean: 0.8412 MovingAvg: 0.8353
+------ Validation epoch 62 ------
+Dice        A: 0.8470 P: 0.8010  Mean: 0.8240 MovingAvg: 0.8347
+------ Validation epoch 63 ------
+Dice        A: 0.8603 P: 0.8370  Mean: 0.8487 MovingAvg: 0.8354
+------ Validation epoch 64 ------
+Dice        A: 0.8554 P: 0.8183  Mean: 0.8369 MovingAvg: 0.8355
+------ Validation epoch 65 ------
+Dice        A: 0.8761 P: 0.8384  Mean: 0.8572 MovingAvg: 0.8366
+------ Validation epoch 66 ------
+Dice        A: 0.8699 P: 0.8324  Mean: 0.8511 MovingAvg: 0.8373
+------ Validation epoch 67 ------
+Dice        A: 0.8665 P: 0.8399  Mean: 0.8532 MovingAvg: 0.8381
+------ Validation epoch 68 ------
+Dice        A: 0.8657 P: 0.8233  Mean: 0.8445 MovingAvg: 0.8384
+------ Validation epoch 69 ------
+Dice        A: 0.8714 P: 0.8340  Mean: 0.8527 MovingAvg: 0.8391
+------ Validation epoch 70 ------
+Dice        A: 0.8710 P: 0.8282  Mean: 0.8496 MovingAvg: 0.8397
+------ Validation epoch 71 ------
+Dice        A: 0.8694 P: 0.8317  Mean: 0.8505 MovingAvg: 0.8402
+------ Validation epoch 72 ------
+Dice        A: 0.8660 P: 0.8341  Mean: 0.8500 MovingAvg: 0.8407
+------ Validation epoch 73 ------
+Dice        A: 0.8634 P: 0.8319  Mean: 0.8477 MovingAvg: 0.8410
+------ Validation epoch 74 ------
+Dice        A: 0.8710 P: 0.8356  Mean: 0.8533 MovingAvg: 0.8416
+------ Validation epoch 75 ------
+Dice        A: 0.8674 P: 0.8388  Mean: 0.8531 MovingAvg: 0.8422
+------ Validation epoch 76 ------
+Dice        A: 0.8815 P: 0.8364  Mean: 0.8589 MovingAvg: 0.8431
+------ Validation epoch 77 ------
+Dice        A: 0.8756 P: 0.8309  Mean: 0.8532 MovingAvg: 0.8436
+------ Validation epoch 78 ------
+Dice        A: 0.8730 P: 0.8350  Mean: 0.8540 MovingAvg: 0.8441
+------ Validation epoch 79 ------
+Dice        A: 0.8753 P: 0.8437  Mean: 0.8595 MovingAvg: 0.8449
+------ Validation epoch 80 ------
+Dice        A: 0.8759 P: 0.8320  Mean: 0.8539 MovingAvg: 0.8453
+------ Validation epoch 81 ------
+Dice        A: 0.8740 P: 0.8372  Mean: 0.8556 MovingAvg: 0.8458
+------ Validation epoch 82 ------
+Dice        A: 0.8644 P: 0.8369  Mean: 0.8506 MovingAvg: 0.8461
+------ Validation epoch 83 ------
+Dice        A: 0.8705 P: 0.8392  Mean: 0.8549 MovingAvg: 0.8465
+------ Validation epoch 84 ------
+Dice        A: 0.8646 P: 0.8405  Mean: 0.8526 MovingAvg: 0.8468
+------ Validation epoch 85 ------
+Dice        A: 0.8787 P: 0.8455  Mean: 0.8621 MovingAvg: 0.8476
+------ Validation epoch 86 ------
+Dice        A: 0.8589 P: 0.8301  Mean: 0.8445 MovingAvg: 0.8474
+------ Validation epoch 87 ------
+Dice        A: 0.8780 P: 0.8355  Mean: 0.8567 MovingAvg: 0.8479
+------ Validation epoch 88 ------
+Dice        A: 0.8713 P: 0.8261  Mean: 0.8487 MovingAvg: 0.8479
+------ Validation epoch 89 ------
+Dice        A: 0.8717 P: 0.8394  Mean: 0.8555 MovingAvg: 0.8483
+------ Validation epoch 90 ------
+Dice        A: 0.8714 P: 0.8360  Mean: 0.8537 MovingAvg: 0.8486
+------ Validation epoch 91 ------
+Dice        A: 0.8702 P: 0.8402  Mean: 0.8552 MovingAvg: 0.8489
+------ Validation epoch 92 ------
+Dice        A: 0.8775 P: 0.8389  Mean: 0.8582 MovingAvg: 0.8494
+------ Validation epoch 93 ------
+Dice        A: 0.8756 P: 0.8422  Mean: 0.8589 MovingAvg: 0.8498
+------ Validation epoch 94 ------
+Dice        A: 0.8785 P: 0.8415  Mean: 0.8600 MovingAvg: 0.8504
+------ Validation epoch 95 ------
+Dice        A: 0.8796 P: 0.8322  Mean: 0.8559 MovingAvg: 0.8506
+------ Validation epoch 96 ------
+Dice        A: 0.8796 P: 0.8352  Mean: 0.8574 MovingAvg: 0.8510
+------ Validation epoch 97 ------
+Dice        A: 0.8578 P: 0.8396  Mean: 0.8487 MovingAvg: 0.8509
+------ Validation epoch 98 ------
+Dice        A: 0.8747 P: 0.8327  Mean: 0.8537 MovingAvg: 0.8510
+------ Validation epoch 99 ------
+Dice        A: 0.8784 P: 0.8379  Mean: 0.8581 MovingAvg: 0.8514
+------ Validation epoch 100 ------
+Dice        A: 0.8738 P: 0.8424  Mean: 0.8581 MovingAvg: 0.8517
+------ Validation epoch 101 ------
+Dice        A: 0.8637 P: 0.8312  Mean: 0.8475 MovingAvg: 0.8515
+------ Validation epoch 102 ------
+Dice        A: 0.8684 P: 0.8229  Mean: 0.8456 MovingAvg: 0.8512
+------ Validation epoch 103 ------
+Dice        A: 0.8717 P: 0.8505  Mean: 0.8611 MovingAvg: 0.8517
+------ Validation epoch 104 ------
+Dice        A: 0.8773 P: 0.8392  Mean: 0.8583 MovingAvg: 0.8520
+------ Validation epoch 105 ------
+Dice        A: 0.8748 P: 0.8395  Mean: 0.8571 MovingAvg: 0.8523
+------ Validation epoch 106 ------
+Dice        A: 0.8802 P: 0.8391  Mean: 0.8596 MovingAvg: 0.8526
+------ Validation epoch 107 ------
+Dice        A: 0.8722 P: 0.8301  Mean: 0.8512 MovingAvg: 0.8526
+------ Validation epoch 108 ------
+Dice        A: 0.8760 P: 0.8342  Mean: 0.8551 MovingAvg: 0.8527
+------ Validation epoch 109 ------
+Dice        A: 0.8651 P: 0.8312  Mean: 0.8482 MovingAvg: 0.8525
+------ Validation epoch 110 ------
+Dice        A: 0.8833 P: 0.8493  Mean: 0.8663 MovingAvg: 0.8532
+------ Validation epoch 111 ------
+Dice        A: 0.8834 P: 0.8420  Mean: 0.8627 MovingAvg: 0.8536
+------ Validation epoch 112 ------
+Dice        A: 0.8744 P: 0.8357  Mean: 0.8551 MovingAvg: 0.8537
+------ Validation epoch 113 ------
+Dice        A: 0.8716 P: 0.8293  Mean: 0.8504 MovingAvg: 0.8535
+------ Validation epoch 114 ------
+Dice        A: 0.8780 P: 0.8495  Mean: 0.8637 MovingAvg: 0.8541
+------ Validation epoch 115 ------
+Dice        A: 0.8749 P: 0.8403  Mean: 0.8576 MovingAvg: 0.8542
+------ Validation epoch 116 ------
+Dice        A: 0.8731 P: 0.8328  Mean: 0.8530 MovingAvg: 0.8542
+------ Validation epoch 117 ------
+Dice        A: 0.8754 P: 0.8411  Mean: 0.8583 MovingAvg: 0.8544
+------ Validation epoch 118 ------
+Dice        A: 0.8658 P: 0.8418  Mean: 0.8538 MovingAvg: 0.8543
+------ Validation epoch 119 ------
+Dice        A: 0.8767 P: 0.8324  Mean: 0.8546 MovingAvg: 0.8544
+------ Validation epoch 120 ------
+Dice        A: 0.8699 P: 0.8368  Mean: 0.8534 MovingAvg: 0.8543
+------ Validation epoch 121 ------
+Dice        A: 0.8765 P: 0.8456  Mean: 0.8610 MovingAvg: 0.8546
+------ Validation epoch 122 ------
+Dice        A: 0.8735 P: 0.8383  Mean: 0.8559 MovingAvg: 0.8547
+------ Validation epoch 123 ------
+Dice        A: 0.8693 P: 0.8362  Mean: 0.8527 MovingAvg: 0.8546
+------ Validation epoch 124 ------
+Dice        A: 0.8749 P: 0.8458  Mean: 0.8604 MovingAvg: 0.8549
+------ Validation epoch 125 ------
+Dice        A: 0.8738 P: 0.8267  Mean: 0.8502 MovingAvg: 0.8547
+------ Validation epoch 126 ------
+Dice        A: 0.8694 P: 0.8361  Mean: 0.8527 MovingAvg: 0.8546
+------ Validation epoch 127 ------
+Dice        A: 0.8731 P: 0.8384  Mean: 0.8558 MovingAvg: 0.8546
+------ Validation epoch 128 ------
+Dice        A: 0.8736 P: 0.8456  Mean: 0.8596 MovingAvg: 0.8549
+------ Validation epoch 129 ------
+Dice        A: 0.8708 P: 0.8329  Mean: 0.8519 MovingAvg: 0.8547
+------ Validation epoch 130 ------
+Dice        A: 0.8650 P: 0.8392  Mean: 0.8521 MovingAvg: 0.8546
+------ Validation epoch 131 ------
+Dice        A: 0.8779 P: 0.8436  Mean: 0.8607 MovingAvg: 0.8549
+------ Validation epoch 132 ------
+Dice        A: 0.8827 P: 0.8375  Mean: 0.8601 MovingAvg: 0.8552
+------ Validation epoch 133 ------
+Dice        A: 0.8814 P: 0.8341  Mean: 0.8577 MovingAvg: 0.8553
+------ Validation epoch 134 ------
+Dice        A: 0.8757 P: 0.8494  Mean: 0.8625 MovingAvg: 0.8556
+------ Validation epoch 135 ------
+Dice        A: 0.8815 P: 0.8387  Mean: 0.8601 MovingAvg: 0.8559
+------ Validation epoch 136 ------
+Dice        A: 0.8772 P: 0.8360  Mean: 0.8566 MovingAvg: 0.8559
+------ Validation epoch 137 ------
+Dice        A: 0.8761 P: 0.8436  Mean: 0.8599 MovingAvg: 0.8561
+------ Validation epoch 138 ------
+Dice        A: 0.8715 P: 0.8362  Mean: 0.8538 MovingAvg: 0.8560
+------ Validation epoch 139 ------
+Dice        A: 0.8808 P: 0.8314  Mean: 0.8561 MovingAvg: 0.8560
+------ Validation epoch 140 ------
+Dice        A: 0.8797 P: 0.8504  Mean: 0.8650 MovingAvg: 0.8565
+------ Validation epoch 141 ------
+Dice        A: 0.8818 P: 0.8336  Mean: 0.8577 MovingAvg: 0.8565
+------ Validation epoch 142 ------
+Dice        A: 0.8792 P: 0.8422  Mean: 0.8607 MovingAvg: 0.8567
+------ Validation epoch 143 ------
+Dice        A: 0.8687 P: 0.8326  Mean: 0.8506 MovingAvg: 0.8564
+------ Validation epoch 144 ------
+Dice        A: 0.8747 P: 0.8422  Mean: 0.8584 MovingAvg: 0.8565
+------ Validation epoch 145 ------
+Dice        A: 0.8677 P: 0.8358  Mean: 0.8518 MovingAvg: 0.8563
+------ Validation epoch 146 ------
+Dice        A: 0.8748 P: 0.8462  Mean: 0.8605 MovingAvg: 0.8565
+------ Validation epoch 147 ------
+Dice        A: 0.8756 P: 0.8363  Mean: 0.8560 MovingAvg: 0.8565
+------ Validation epoch 148 ------
+Dice        A: 0.8802 P: 0.8311  Mean: 0.8557 MovingAvg: 0.8564
+------ Validation epoch 149 ------
+Dice        A: 0.8816 P: 0.8396  Mean: 0.8606 MovingAvg: 0.8566
+------ Validation epoch 150 ------
+Dice        A: 0.8685 P: 0.8348  Mean: 0.8517 MovingAvg: 0.8564
+------ Validation epoch 151 ------
+Dice        A: 0.8583 P: 0.8255  Mean: 0.8419 MovingAvg: 0.8557
+------ Validation epoch 152 ------
+Dice        A: 0.8667 P: 0.8478  Mean: 0.8572 MovingAvg: 0.8557
+------ Validation epoch 153 ------
+Dice        A: 0.8766 P: 0.8371  Mean: 0.8569 MovingAvg: 0.8558
+------ Validation epoch 154 ------
+Dice        A: 0.8747 P: 0.8271  Mean: 0.8509 MovingAvg: 0.8556
+------ Validation epoch 155 ------
+Dice        A: 0.8764 P: 0.8385  Mean: 0.8575 MovingAvg: 0.8556
+------ Validation epoch 156 ------
+Dice        A: 0.8761 P: 0.8416  Mean: 0.8589 MovingAvg: 0.8558
+------ Validation epoch 157 ------
+Dice        A: 0.8779 P: 0.8371  Mean: 0.8575 MovingAvg: 0.8559
+------ Validation epoch 158 ------
+Dice        A: 0.8803 P: 0.8294  Mean: 0.8548 MovingAvg: 0.8558
+------ Validation epoch 159 ------
+Dice        A: 0.8654 P: 0.8380  Mean: 0.8517 MovingAvg: 0.8556
+------ Validation epoch 160 ------
+Dice        A: 0.8720 P: 0.8418  Mean: 0.8569 MovingAvg: 0.8557
+------ Validation epoch 161 ------
+Dice        A: 0.8727 P: 0.8429  Mean: 0.8578 MovingAvg: 0.8558
+------ Validation epoch 162 ------
+Dice        A: 0.8754 P: 0.8352  Mean: 0.8553 MovingAvg: 0.8558
+------ Validation epoch 163 ------
+Dice        A: 0.8783 P: 0.8462  Mean: 0.8623 MovingAvg: 0.8561

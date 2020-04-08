@@ -4,9 +4,9 @@ import bratsDataset
 import segmenter
 import systemsetup
 
-import experiments.noNewReversible as expConfig
+#import experiments.noNewReversible as expConfig
 #import experiments.noNewReversibleFat as expConfig
-#import experiments.noNewNet as expConfig
+import experiments.noNewNet as expConfig
 #import experiments.noNewReversiblebn as expConfig
 
 class bcolors:

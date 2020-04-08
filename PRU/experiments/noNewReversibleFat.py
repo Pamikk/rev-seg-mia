@@ -20,7 +20,7 @@ PREDICT = False
 
 #general settings
 SAVE_CHECKPOINTS = False #set to true to create a checkpoint at every epoch
-encDepth = 2
+encDepth = 1
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
 EXPERIMENT_NAME = "Reversible NO_NEW60 {}encoder, 1decoder".format(encDepth)
 EPOCHS = 1000
@@ -31,7 +31,7 @@ SAVE_EVERY_K_EPOCHS = 10
 INPLACE = True
 
 #hyperparameters
-CHANNELS = [60, 120, 240, 360, 480]
+CHANNELS = [64,128,256,512,1024]
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 

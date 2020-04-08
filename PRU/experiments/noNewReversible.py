@@ -14,8 +14,8 @@ id = random.getrandbits(64)
 #restore experiment
 #VALIDATE_ALL = False
 PREDICT = False
-RESTORE_ID = 15161688626888067130
-RESTORE_EPOCH = 449
+#RESTORE_ID = 15161688626888067130
+#RESTORE_EPOCH = 449
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
@@ -31,7 +31,7 @@ INPLACE = True
 
 #hyperparameters
 #CHANNELS = [36, 72, 144, 288, 576] #normal doubling strategy
-CHANNELS = [60, 120, 240, 360, 480]
+CHANNELS = [48, 96, 192, 384, 768]
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 

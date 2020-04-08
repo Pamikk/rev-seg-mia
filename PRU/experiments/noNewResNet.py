@@ -18,22 +18,23 @@ PREDICT = False
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
-SAVE_CHECKPOINTS = False #set to true to create a checkpoint at every epoch
+SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
+Depth=4
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
-EXPERIMENT_NAME = "Nonreversible NO_NEW30"
+EXPERIMENT_NAME = "Nonreversible NO_NEW_Res30_encoder"+str(Depth)
 EPOCHS = 1000
-BATCH_SIZE = 1
+BATCH_SIZE = 16
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
 INPLACE = True
 
 #hyperparameters
-CHANNELS = 32
+CHANNELS = 30
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
 #logging settings
-LOG_EVERY_K_ITERATIONS = 50 #0 to disable logging
+LOG_EVERY_K_ITERATIONS = 5 #0 to disable logging
 LOG_MEMORY_EVERY_K_ITERATIONS = False
 LOG_MEMORY_EVERY_EPOCH = True
 LOG_EPOCH_TIME = True
@@ -42,6 +43,7 @@ LOG_HAUSDORFF_EVERY_K_EPOCHS = 0 #must be a multiple of VALIDATE_EVERY_K_EPOCHS
 LOG_COMETML = False
 LOG_PARAMCOUNT = True
 LOG_LR_EVERY_EPOCH = True
+SAVE_EVERY_K_EPOCHS = 50
 
 #data and augmentation
 TRAIN_ORIGINAL_CLASSES = False #train on original 5 classes
@@ -51,7 +53,7 @@ NN_AUGMENTATION = True #Has priority over soft/hard augmentation. Uses nearest-n
 DO_ROTATE = True
 DO_SCALE = True
 DO_FLIP = True
-DO_ELASTIC_AUG = True
+DO_ELASTIC_AUG = False
 DO_INTENSITY_SHIFT = True
 #RANDOM_CROP = [128, 128, 128]
 
@@ -75,15 +77,38 @@ else:
     #loss = bratsUtils.bratsDiceLoss
     def loss(outputs, labels):
         return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
-
-
+class ResidualInner(nn.Module):
+    def __init__(self, channels, groups):
+        super(ResidualInner, self).__init__()
+        self.gn = nn.GroupNorm(groups, channels)
+        self.conv = nn.Conv3d(channels, channels, 3, padding=1, bias=False)
+    def forward(self, x):
+        x = F.leaky_relu(self.gn(self.conv(x)), inplace=INPLACE)
+        return x
+def makeSequencesec(channels,depth,groups):
+    modules = []
+    for i in range(depth):
+        modules.append(ResidualInner(channels,groups))
+        modules.append(ResidualInner(channels,groups))
+    return nn.Sequential(*modules)
+def makeSequences(channels,depth,groups):
+    modules = []
+    for i in range(depth):
+        modules.append(ResidualInner(channels,groups))
+    return nn.Sequential(*modules)
 class EncoderModule(nn.Module):
-    def __init__(self, inChannels, outChannels, maxpool=False, secondConv=True, hasDropout=False):
+    def __init__(self, inChannels, outChannels, depth,maxpool=False, secondConv=True, hasDropout=False):
         super(EncoderModule, self).__init__()
         groups = min(outChannels, CHANNELS)
         self.maxpool = maxpool
         self.secondConv = secondConv
         self.hasDropout = hasDropout
+        self.depth = depth
+        if depth>1:
+            if secondConv:
+                self.blocks=makeSequencesec(outChannels,depth,groups)
+            else:
+                self.blocks=makeSequences(outChannels,depth,groups)
         self.conv1 = nn.Conv3d(inChannels, outChannels, 3, padding=1, bias=False)
         self.gn1 = nn.GroupNorm(groups, outChannels)
         if secondConv:
@@ -97,6 +122,8 @@ class EncoderModule(nn.Module):
             x = F.max_pool3d(x, 2)
         doInplace = INPLACE and not self.hasDropout
         x = F.leaky_relu(self.gn1(self.conv1(x)), inplace=doInplace)
+        if self.depth>1:
+            x = self.blocks(x)        
         if self.hasDropout:
             x = self.dropout(x)
         if self.secondConv:
@@ -111,9 +138,9 @@ class DecoderModule(nn.Module):
         self.firstConv = firstConv
         if firstConv:
             self.conv1 = nn.Conv3d(inChannels, inChannels, 3, padding=1, bias=False)
-            self.gn1 = nn.GroupNorm(groups, inChannels)
+            self.gn1 = nn.GroupNorm(groups,outChannels)
         self.conv2 = nn.Conv3d(inChannels, outChannels, 3, padding=1, bias=False)
-        self.gn2 = nn.GroupNorm(groups, outChannels)
+        self.gn2 = nn.GroupNorm(groups,outChannels)
 
     def forward(self, x):
         if self.firstConv:
@@ -124,18 +151,18 @@ class DecoderModule(nn.Module):
         return x
 
 class NoNewNet(nn.Module):
-    def __init__(self):
+    def __init__(self,depth=Depth):
         super(NoNewNet, self).__init__()
         channels = CHANNELS
         self.levels = 5
-
         self.lastConv = nn.Conv3d(channels, 2, 1, bias=True)
+
         #create encoder levels
         encoderModules = []
-        encoderModules.append(EncoderModule(1, channels, False, True))
+        encoderModules.append(EncoderModule(1, channels,depth, False, True))
         for i in range(self.levels - 2):
-            encoderModules.append(EncoderModule(channels * pow(2, i), channels * pow(2, i+1), True, True))
-        encoderModules.append(EncoderModule(channels * pow(2, self.levels - 2), channels * pow(2, self.levels - 1), True, False))
+            encoderModules.append(EncoderModule(channels * pow(2, i), channels * pow(2, i+1),depth, True, True))
+        encoderModules.append(EncoderModule(channels * pow(2, self.levels - 2), channels * pow(2, self.levels - 1),depth, True, False))
         self.encoders = nn.ModuleList(encoderModules)
 
         #create decoder levels

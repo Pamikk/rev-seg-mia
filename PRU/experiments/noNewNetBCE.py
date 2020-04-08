@@ -11,19 +11,19 @@ import random
 id = random.getrandbits(64)
 
 #restore experiment
-#VALIDATE_ALL = False
+VALIDATE_ALL = False
 PREDICT = False
-#RESTORE_ID = 395
-#RESTORE_EPOCH = 350
+#RESTORE_ID = 11584994356563289186
+#RESTORE_EPOCH = 149
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
 SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
-Depth=4
+Depth=1
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
 EXPERIMENT_NAME = "Nonreversible NO_NEW30_encoder"+str(Depth)
 EPOCHS = 1000
-BATCH_SIZE = 16
+BATCH_SIZE = 1
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
 INPLACE = True
@@ -34,7 +34,7 @@ INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
 #logging settings
-LOG_EVERY_K_ITERATIONS = 5 #0 to disable logging
+LOG_EVERY_K_ITERATIONS = 50 #0 to disable logging
 LOG_MEMORY_EVERY_K_ITERATIONS = False
 LOG_MEMORY_EVERY_EPOCH = True
 LOG_EPOCH_TIME = True
@@ -80,7 +80,7 @@ else:
 class ResidualInner(nn.Module):
     def __init__(self, channels, groups):
         super(ResidualInner, self).__init__()
-        self.gn = nn.BatchNorm3d(channels)
+        self.gn = nn.GroupNorm(groups, channels)
         self.conv = nn.Conv3d(channels, channels, 3, padding=1, bias=False)
 
     def forward(self, x):
@@ -101,12 +101,13 @@ class EncoderModule(nn.Module):
         self.hasDropout = hasDropout
         self.depth = depth
         if depth>1:
+            print('have blocks')
             self.blocks = makeSequence(inChannels,depth-1,groups)
         self.conv1 = nn.Conv3d(inChannels, outChannels, 3, padding=1, bias=False)
-        self.gn1 = nn.BatchNorm3d(outChannels)
+        self.gn1 = nn.GroupNorm(groups, outChannels)
         if secondConv:
             self.conv2 = nn.Conv3d(outChannels, outChannels, 3, padding=1, bias=False)
-            self.gn2 = nn.BatchNorm3d(outChannels)
+            self.gn2 = nn.GroupNorm(groups, outChannels)
         if hasDropout:
             self.dropout = nn.Dropout3d(0.2, True)
 
@@ -131,9 +132,9 @@ class DecoderModule(nn.Module):
         self.firstConv = firstConv
         if firstConv:
             self.conv1 = nn.Conv3d(inChannels, inChannels, 3, padding=1, bias=False)
-            self.gn1 = nn.BatchNorm3d(outChannels)
+            self.gn1 = nn.GroupNorm(groups, inChannels)
         self.conv2 = nn.Conv3d(inChannels, outChannels, 3, padding=1, bias=False)
-        self.gn2 = nn.BatchNorm3d(outChannels)
+        self.gn2 = nn.GroupNorm(groups, outChannels)
 
     def forward(self, x):
         if self.firstConv:
@@ -153,7 +154,7 @@ class NoNewNet(nn.Module):
 
         #create encoder levels
         encoderModules = []
-        encoderModules.append(EncoderModule(channels, channels,4, False, True))
+        encoderModules.append(EncoderModule(channels, channels,4, False, False))
         for i in range(self.levels - 2):
             encoderModules.append(EncoderModule(channels * pow(2, i), channels * pow(2, i+1),depth, True, True))
         encoderModules.append(EncoderModule(channels * pow(2, self.levels - 2), channels * pow(2, self.levels - 1),depth, True, False))
@@ -187,4 +188,4 @@ class NoNewNet(nn.Module):
 net = NoNewNet()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [250, 400, 550], 0.2)
+lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [250, 400, 475], 0.2)
