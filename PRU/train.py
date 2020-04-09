@@ -5,8 +5,8 @@ import segmenter
 import systemsetup
 
 #import experiments.noNewReversible as expConfig
-#import experiments.noNewReversibleFat as expConfig
-import experiments.mybaselineBCE as expConfig
+import experiments.noNewReversibleFat as expConfig
+#import experiments.mybaseline as expConfig
 #import experiments.noNewReversiblebn as expConfig
 
 class bcolors:

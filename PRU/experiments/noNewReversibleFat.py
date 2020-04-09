@@ -188,4 +188,4 @@ class NoNewReversible(nn.Module):
 net = NoNewReversible()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [150, 300, 450,500], 0.5)
+lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=15)
