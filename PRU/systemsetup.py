@@ -6,8 +6,7 @@ BRATS_PATH = '../../../dataset/Mydataset/processed/data_3D_train.hdf5'
 BRATS_VAL_PATH = '../../../dataset/Mydataset/processed/data_3D.hdf5'
 
 #Define a location for checkpoints (with trailing slash)
-#CHECKPOINT_BASE_PATH = "../../exp/rev-net"
-CHECKPOINT_BASE_PATH = "../../exp/no-new-net"
+CHECKPOINT_BASE_PATH = "../../exp/"
 
 #Define a location for predictions (with trailing slash)
 PREDICTIONS_BASE_PATH = "../../exp/prediction"

@@ -12,23 +12,27 @@ id = random.getrandbits(64)
 
 #restore experiment
 #VALIDATE_ALL = False
-PREDICT = False
-#RESTORE_ID = 395
-#RESTORE_EPOCH = 350
+#PREDICT = True
+#RESTORE_ID = 13208142648257160921
+#RESTORE_EPOCH = "best"
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
-SAVE_CHECKPOINTS = False #set to true to create a checkpoint at every epoch
+Depth = 1
+SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
-EXPERIMENT_NAME = "Nonreversible NO_NEW30"
+EXPERIMENT_NAME = "Baseline"+str(Depth)
 EPOCHS = 1000
 BATCH_SIZE = 1
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
+SAVE_EVERY_K_EPOCHS = 25
 INPLACE = True
 
 #hyperparameters
-CHANNELS = 32
+#CHANNELS = [80,160,320,640]
+#CHANNELS = [96,192,384,768]
+CHANNELS =[60,120,240,480]
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
@@ -51,7 +55,7 @@ NN_AUGMENTATION = True #Has priority over soft/hard augmentation. Uses nearest-n
 DO_ROTATE = True
 DO_SCALE = True
 DO_FLIP = True
-DO_ELASTIC_AUG = True
+DO_ELASTIC_AUG = False
 DO_INTENSITY_SHIFT = True
 #RANDOM_CROP = [128, 128, 128]
 
@@ -76,77 +80,81 @@ else:
     def loss(outputs, labels):
         return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
 
-
-class EncoderModule(nn.Module):
-    def __init__(self, inChannels, outChannels, maxpool=False, secondConv=True, hasDropout=False):
-        super(EncoderModule, self).__init__()
-        groups = min(outChannels, CHANNELS)
-        self.maxpool = maxpool
-        self.secondConv = secondConv
-        self.hasDropout = hasDropout
-        self.conv1 = nn.Conv3d(inChannels, outChannels, 3, padding=1, bias=False)
-        self.gn1 = nn.GroupNorm(groups, outChannels)
-        if secondConv:
-            self.conv2 = nn.Conv3d(outChannels, outChannels, 3, padding=1, bias=False)
-            self.gn2 = nn.GroupNorm(groups, outChannels)
-        if hasDropout:
-            self.dropout = nn.Dropout3d(0.2, True)
+class ResidualInner(nn.Module):
+    def __init__(self, channels, groups):
+        super(ResidualInner, self).__init__()
+        self.gn = nn.GroupNorm(groups, channels)
+        self.conv = nn.Conv3d(channels, channels, 3, padding=1, bias=False)
 
     def forward(self, x):
-        if self.maxpool:
-            x = F.max_pool3d(x, 2)
-        doInplace = INPLACE and not self.hasDropout
-        x = F.leaky_relu(self.gn1(self.conv1(x)), inplace=doInplace)
-        if self.hasDropout:
-            x = self.dropout(x)
-        if self.secondConv:
-            x = F.leaky_relu(self.gn2(self.conv2(x)), inplace=INPLACE)
+        x = self.conv(F.leaky_relu(self.gn(x), inplace=INPLACE))
         return x
 
-class DecoderModule(nn.Module):
-    def __init__(self, inChannels, outChannels, upsample=False, firstConv=True):
-        super(DecoderModule, self).__init__()
-        groups = min(outChannels, CHANNELS)
-        self.upsample = upsample
-        self.firstConv = firstConv
-        if firstConv:
-            self.conv1 = nn.Conv3d(inChannels, inChannels, 3, padding=1, bias=False)
-            self.gn1 = nn.GroupNorm(groups, inChannels)
-        self.conv2 = nn.Conv3d(inChannels, outChannels, 3, padding=1, bias=False)
-        self.gn2 = nn.GroupNorm(groups, outChannels)
+def makeSequence(channels):
+    groups = CHANNELS[0] // 4
+    fBlock = ResidualInner(channels, groups)
+    gBlock = ResidualInner(channels, groups)
+    return nn.Sequential(*[fBlock,gBlock])
+def makeComponent(channels,blockCount):
+    modules = []
+    for i in range(blockCount):
+        modules.append(makeSequence(channels))
+    return nn.Sequential(*modules)
+class EncoderModule(nn.Module):
+    def __init__(self, inChannels, outChannels, depth, downsample=True):
+        super(EncoderModule, self).__init__()
+        self.downsample = downsample
+        if downsample:
+            self.conv = nn.Conv3d(inChannels, outChannels, 1)
+        self.Blocks = makeComponent(outChannels, depth)
 
     def forward(self, x):
-        if self.firstConv:
-            x = F.leaky_relu(self.gn1(self.conv1(x)), inplace=INPLACE)
-        x = F.leaky_relu(self.gn2(self.conv2(x)), inplace=INPLACE)
+        if self.downsample:
+            x = F.avg_pool3d(x, 2)
+            x = self.conv(x) #increase number of channels
+        x = self.Blocks(x)
+        return x
+class DecoderModule(nn.Module):
+    def __init__(self, inChannels, outChannels, depth, upsample=True):
+        super(DecoderModule, self).__init__()
+        self.Blocks = makeComponent(inChannels, depth)
+        self.upsample = upsample
         if self.upsample:
+            self.conv = nn.Conv3d(inChannels, outChannels, 1)
+
+    def forward(self, x):
+        x = self.Blocks(x)
+        if self.upsample:
+            x = self.conv(x)
             x = F.interpolate(x, scale_factor=2, mode="trilinear", align_corners=False)
         return x
-
+def getChannelsAtIndex(index):
+    if index < 0: index = 0
+    if index >= len(CHANNELS): index = len(CHANNELS) - 1
+    return CHANNELS[index]//2
 class NoNewNet(nn.Module):
     def __init__(self):
         super(NoNewNet, self).__init__()
-        channels = CHANNELS
+        channels = CHANNELS[0]//2
+        ecdepth = Depth
+        dcdepth = 1
         self.levels = 5
-
+        self.firstConv = nn.Conv3d(1,channels, 3, padding=1, bias=False)
         self.lastConv = nn.Conv3d(channels, 2, 1, bias=True)
         #create encoder levels
         encoderModules = []
-        encoderModules.append(EncoderModule(1, channels, False, True))
-        for i in range(self.levels - 2):
-            encoderModules.append(EncoderModule(channels * pow(2, i), channels * pow(2, i+1), True, True))
-        encoderModules.append(EncoderModule(channels * pow(2, self.levels - 2), channels * pow(2, self.levels - 1), True, False))
+        for i in range(self.levels):
+            encoderModules.append(EncoderModule(getChannelsAtIndex(i - 1), getChannelsAtIndex(i), ecdepth, i != 0))
         self.encoders = nn.ModuleList(encoderModules)
 
         #create decoder levels
         decoderModules = []
-        decoderModules.append(DecoderModule(channels * pow(2, self.levels - 1), channels * pow(2, self.levels - 2), True, False))
-        for i in range(self.levels - 2):
-            decoderModules.append(DecoderModule(channels * pow(2, self.levels - i - 2), channels * pow(2, self.levels - i - 3), True, True))
-        decoderModules.append(DecoderModule(channels, channels, False, True))
+        for i in range(self.levels):
+            decoderModules.append(DecoderModule(getChannelsAtIndex(self.levels - i - 1), getChannelsAtIndex(self.levels - i - 2), dcdepth, i != (self.levels -1)))
         self.decoders = nn.ModuleList(decoderModules)
 
     def forward(self, x):
+        x = self.firstConv(x)
         inputStack = []
         for i in range(self.levels):
             x = self.encoders[i](x)
@@ -165,4 +173,4 @@ class NoNewNet(nn.Module):
 net = NoNewNet()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [250, 400, 550], 0.2)
+lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [150, 300, 450,500], 0.5)

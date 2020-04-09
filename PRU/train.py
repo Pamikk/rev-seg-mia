@@ -6,7 +6,7 @@ import systemsetup
 
 #import experiments.noNewReversible as expConfig
 #import experiments.noNewReversibleFat as expConfig
-import experiments.noNewNet as expConfig
+import experiments.mybaselineBCE as expConfig
 #import experiments.noNewReversiblebn as expConfig
 
 class bcolors:
@@ -23,7 +23,7 @@ def main():
                         "batchSize": expConfig.BATCH_SIZE,
                         "channels": expConfig.CHANNELS,
                         "virualBatchsize": expConfig.VIRTUAL_BATCHSIZE}
-        expConfig.experiment.log_parameters(hyper_params)
+        expConfig.experiment.log_(hyper_params)
         expConfig.experiment.add_tags([expConfig.EXPERIMENT_NAME, "ID{}".format(expConfig.id)])
         if hasattr(expConfig, "EXPERIMENT_TAGS"): expConfig.experiment.add_tags(expConfig.EXPERIMENT_TAGS)
         print(bcolors.OKGREEN + "Logging to comet.ml" + bcolors.ENDC)
@@ -39,8 +39,8 @@ def main():
     randomCrop = expConfig.RANDOM_CROP if hasattr(expConfig, "RANDOM_CROP") else None
     trainset = bratsDataset.BratsDataset(systemsetup.BRATS_PATH, expConfig, mode="train", randomCrop=randomCrop)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=expConfig.BATCH_SIZE, shuffle=True, pin_memory=False)
-    trainvalset = bratsDataset.BratsDataset(systemsetup.BRATS_PATH, expConfig, mode="validation")
-    trainvalloader = torch.utils.data.DataLoader(trainvalset, batch_size=expConfig.BATCH_SIZE, shuffle=False, pin_memory=False)
+    #trainvalset = bratsDataset.BratsDataset(systemsetup.BRATS_PATH, expConfig, mode="validation")
+    #trainvalloader = torch.utils.data.DataLoader(trainvalset, batch_size=expConfig.BATCH_SIZE, shuffle=False, pin_memory=False)
 
     valset = bratsDataset.BratsDataset(systemsetup.BRATS_PATH, expConfig, mode="validation")
     valloader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, pin_memory=False)
@@ -48,7 +48,7 @@ def main():
     challengeValset = bratsDataset.BratsDataset(systemsetup.BRATS_VAL_PATH, expConfig,hasMasks=False, mode="validation", returnOffsets=True)
     challengeValloader = torch.utils.data.DataLoader(challengeValset, batch_size=1, shuffle=False, pin_memory=True)
 
-    seg = segmenter.Segmenter(expConfig, trainloader, valloader, challengeValloader,trainvalloader)
+    seg = segmenter.Segmenter(expConfig, trainloader, valloader, challengeValloader)#,trainvalloader)
     if hasattr(expConfig, "VALIDATE_ALL") and expConfig.VALIDATE_ALL:
         seg.validateAllCheckpoints()
     elif hasattr(expConfig, "PREDICT") and expConfig.PREDICT:

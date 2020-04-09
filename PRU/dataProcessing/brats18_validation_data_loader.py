@@ -61,11 +61,10 @@ def crop_or_pad_slice_to_size(image, target_size, channels=None):
         output_volume = np.zeros((x_t, y_t, z_t), dtype=np.float32)
 
     if x_s > x_t:
+        print("Too wide...")
+        print(image.shape)
         image = image[:x_t, :, :, :]
-    if y_s > y_t:
-        image = image[:, :y_t, :, :]
-    if z_s > z_t:
-        image = image[:, :, :z_t, :]
+        print(image.shape)
 
     if not channels is None:
         output_volume[0:x_s, 0:y_s, 0:z_s, :] = image
@@ -106,7 +105,7 @@ def prepare_data(input_folder, output_file, input_channels):
     for tt, num_points in zip(['test', 'train', 'validation'], [n_test, n_train, n_val]):
 
         if num_points > 0:
-            data['images_%s' % tt] = hdf5_file.create_dataset("images_%s" % tt, [num_points] + [32,48,48] + [input_channels],
+            data['images_%s' % tt] = hdf5_file.create_dataset("images_%s" % tt, [num_points] + [48, 64, 48] + [input_channels],
                                                               dtype=np.float32)
             data['pids_%s' % tt] = hdf5_file.create_dataset("pids_%s" % tt, [num_points], dtype=h5py.special_dtype(vlen=str))
             data['xOffsets_%s' % tt] = hdf5_file.create_dataset("xOffsets_%s" % tt, [num_points], dtype=np.int)
@@ -178,7 +177,7 @@ def prepare_data(input_folder, output_file, input_channels):
             logging.info(pixel_size)
 
             ### PROCESSING LOOP FOR 3D DATA ################################
-            img = crop_or_pad_slice_to_size(img, [32, 48, 48], input_channels)
+            img= crop_or_pad_slice_to_size(img, [48, 64, 48], input_channels)
             img = normalise_image(img)
 
             img_list[train_test].append(img)

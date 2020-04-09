@@ -41,7 +41,7 @@ def bratsDiceLoss(outputs, labels, nonSquared=False):
     #calculate losses
     ALoss = diceLoss(A, Amask, nonSquared=nonSquared)
     PLoss = diceLoss(P, Pmask, nonSquared=nonSquared)
-    return (PLoss + ALoss) / 3
+    return (PLoss + ALoss) / 2
 
 def bratsDiceLossOriginal5(outputs, labels, nonSquared=False):
     outputList = list(outputs.chunk(5, dim=1))

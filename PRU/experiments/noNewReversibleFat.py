@@ -13,13 +13,13 @@ id = random.getrandbits(64)
 
 #restore experiment
 #VALIDATE_ALL = False
-PREDICT = False
-#RESTORE_ID = 380
-#RESTORE_EPOCH = 298
+#PREDICT = True
+#RESTORE_ID = 18255049944119055400
+#RESTORE_EPOCH = 
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
-SAVE_CHECKPOINTS = False #set to true to create a checkpoint at every epoch
+SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
 encDepth = 1
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
 EXPERIMENT_NAME = "Reversible NO_NEW60 {}encoder, 1decoder".format(encDepth)
@@ -27,11 +27,15 @@ EPOCHS = 1000
 BATCH_SIZE = 1
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
-SAVE_EVERY_K_EPOCHS = 10
+SAVE_EVERY_K_EPOCHS = 25
 INPLACE = True
 
 #hyperparameters
-CHANNELS = [64,128,256,512,1024]
+#CHANNELS = [80,160,320,640]
+#CHANNELS = [64,128,256,512]
+#CHANNELS = [96,192,384,768]
+#CHANNELS = [72,144,288,576]
+CHANNELS =[60,120,240,480]
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
@@ -119,7 +123,7 @@ class EncoderModule(nn.Module):
 
     def forward(self, x):
         if self.downsample:
-            x = F.max_pool3d(x, 2)
+            x = F.avg_pool3d(x, 2)
             x = self.conv(x) #increase number of channels
         x = self.reversibleBlocks(x)
         return x
@@ -184,4 +188,4 @@ class NoNewReversible(nn.Module):
 net = NoNewReversible()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [250, 400, 500], 0.2)
+lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [150, 300, 450,500], 0.5)

@@ -184,12 +184,14 @@ def prepare_data(input_folder, output_file, size, input_channels, target_resolut
             patient_id = folder
 
             baseFilePath = os.path.join(input_folder, folder, folder)
-            img_c1, _, img_header = utils.load_nii(baseFilePath + ".nii.gz")
+            img_dat, _, img_header = utils.load_nii(baseFilePath + ".nii.gz")
             mask_dat, _, _ = utils.load_nii(baseFilePath + "_seg.nii.gz")
-
-            img_dat = np.expand_dims(img_c1,axis=3)
-
+            img_dat = np.expand_dims(img_dat,axis=3)
             img, mask = crop_volume_allDim(img_dat.copy(), mask_dat.copy())
+
+            
+            
+
 
             pixel_size = (img_header.structarr['pixdim'][1],
                           img_header.structarr['pixdim'][2],
@@ -308,5 +310,5 @@ if __name__ == '__main__':
     input_folder = '../../../../dataset/Mydataset/train'
     preprocessing_folder = '../../../../dataset/Mydataset/processed'
 
-    d = load_and_maybe_process_data(input_folder, preprocessing_folder, (32, 48, 48), 1, (1.0, 1.0, 1.0), force_overwrite=True)
+    d = load_and_maybe_process_data(input_folder, preprocessing_folder, (48, 64, 48), 1, (1.0, 1.0, 1.0), force_overwrite=True)
 

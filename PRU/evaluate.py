@@ -1,7 +1,7 @@
 import nibabel as nib 
 import os
 import numpy as np
-pdpath = '../../exp/prediction/15161688626888067130_ebest/'
+pdpath = '../../exp/prediction_rev/18255049944119055400_ebest/'
 gtpath = '../../../dataset/Mydataset/test'
 def softDice(pred, target, smoothing=1, nonSquared=False):
     intersection = (pred * target).sum()
