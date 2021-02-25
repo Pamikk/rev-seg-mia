@@ -152,24 +152,6 @@ def prepare_data(input_folder, output_file, size, input_channels, target_resolut
     maxYCropped = 0
     maxZCropped = 0
     i = 0
-    for train_test in ['test', 'train', 'validation']:
-        for folder in file_list[train_test]:
-            print("Doing file {}".format(i))
-            i += 1
-
-            baseFilePath = os.path.join(input_folder, folder, folder)
-            img_c1, _, img_header = utils.load_nii(baseFilePath + ".nii.gz")
-            img_dat = np.expand_dims(img_c1, 3)
-
-            maxX = max(maxX, img_dat.shape[0])
-            maxY = max(maxY, img_dat.shape[1])
-            maxZ = max(maxZ, img_dat.shape[2])
-            img_dat_cropped = crop_volume_allDim(img_dat)
-            maxXCropped = max(maxXCropped, img_dat_cropped.shape[0])
-            maxYCropped = max(maxYCropped, img_dat_cropped.shape[1])
-            maxZCropped = max(maxZCropped, img_dat_cropped.shape[2])
-    print("Max x: {}, y: {}, z: {}".format(maxX, maxY, maxZ))
-    print("Max cropped x: {}, y: {}, z: {}".format(maxXCropped, maxYCropped, maxZCropped))
 
     for train_test in ['train', 'test', 'validation']:
 
@@ -199,9 +181,8 @@ def prepare_data(input_folder, output_file, size, input_channels, target_resolut
 
             logging.info('Pixel size:')
             logging.info(pixel_size)
-
+            assert pixel_size == (1.0,1.0,1.0)
             ### PROCESSING LOOP FOR 3D DATA ################################
-
             scale_vector = [pixel_size[0] / target_resolution[0],
                             pixel_size[1] / target_resolution[1],
                             pixel_size[2]/ target_resolution[2]]
@@ -307,8 +288,8 @@ def load_and_maybe_process_data(input_folder,
 
 
 if __name__ == '__main__':
-    input_folder = '../../../../dataset/Mydataset/train'
-    preprocessing_folder = '../../../../dataset/Mydataset/processed'
+    input_folder = '../../../dataset/Mydataset/train'
+    preprocessing_folder = '../../../dataset/Mydataset/processed'
 
     d = load_and_maybe_process_data(input_folder, preprocessing_folder, (48, 64, 48), 1, (1.0, 1.0, 1.0), force_overwrite=True)
 

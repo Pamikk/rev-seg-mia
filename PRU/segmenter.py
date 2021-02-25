@@ -30,7 +30,7 @@ class Segmenter:
         self.bestMovingAvg = 0
         self.bestMovingAvgEpoch = 1e9
         self.EXPONENTIAL_MOVING_AVG_ALPHA = 0.95
-        self.EARLY_STOPPING_AFTER_EPOCHS = 200
+        self.EARLY_STOPPING_AFTER_EPOCHS = 100
         
 
         # restore model if requested
@@ -103,9 +103,9 @@ class Segmenter:
                 #predict labels and bring into required shape
                 outputs = expConfig.net(inputs)
                 n,c,h,w,d = outputs.shape
-                nh,nw,nd = h-xOffset,w-yOffset,d-zOffset
-                fullsize = torch.zeros(n,c,nh,nw,nd)
-                fullsize = outputs[:,:,xOffset:,yOffset:,zOffset:]
+                nh,nw,nd = h+xOffset,w+yOffset,d+zOffset
+                fullsize = torch.zeros([n,c,nh,nw,nd])
+                fullsize[:,:,xOffset:xOffset+h,yOffset:yOffset+w,zOffset:zOffset+d]=outputs
 
                 #binarize output
                 A,P = fullsize.chunk(2, dim=1)
@@ -173,7 +173,7 @@ class Segmenter:
                 for param_group in expConfig.optimizer.param_groups:
                     print("Current lr: {:.6f}".format(param_group['lr']))
                     print(running_loss/num)
-                    self.trainlog.write("{:.6f}\t{:.6f}\n".format(param_group['lr'],running_loss/num))
+                    self.trainlog.write("{}\t{:.6f}\t{:.6f}\n".format(epoch,param_group['lr'],running_loss/num))
             #validation at end of epoch
             if epoch % expConfig.VALIDATE_EVERY_K_EPOCHS == expConfig.VALIDATE_EVERY_K_EPOCHS - 1:
                 self.validate(epoch)
@@ -278,9 +278,11 @@ class Segmenter:
         meanDiceA = np.mean(diceA)
         meanDiceP = np.mean(diceP)
         meanDice = np.mean([meanDiceA, meanDiceP])
-        if (meanDice > self.bestMeanDice):
+        if (meanDice >= self.bestMeanDice):
             self.bestMeanDice = meanDice
             self.bestMeanDiceEpoch = epoch
+            print("best so far")
+            self.saveToDiskbest_(epoch)
 
         #update moving avg
         self._updateMovingAvg(meanDice, epoch)
@@ -354,6 +356,26 @@ class Segmenter:
         #save dict
         basePath = self.checkpointsBasePathSave + "{}".format(self.expConfig.id)
         path = basePath + "/e_best.pt".format(epoch)
+        if not os.path.exists(basePath):
+            os.makedirs(basePath)
+        torch.save(saveDict, path)
+    def saveToDiskbest_(self, epoch):
+
+        #gather things to save
+        saveDict = {"net_state_dict": self.expConfig.net.state_dict(),
+                    "optimizer_state_dict": self.expConfig.optimizer.state_dict(),
+                    "epoch": epoch,
+                    "bestMeanDice": self.bestMeanDice,
+                    "bestMeanDiceEpoch": self.bestMeanDiceEpoch,
+                    "movingAvg": self.movingAvg,
+                    "bestMovingAvgEpoch": self.bestMovingAvgEpoch,
+                    "bestMovingAvg": self.bestMovingAvg}
+        if hasattr(self.expConfig, "lr_sheudler"):
+            saveDict["lr_sheudler_state_dict"] = self.expConfig.lr_sheudler.state_dict()
+
+        #save dict
+        basePath = self.checkpointsBasePathSave + "{}".format(self.expConfig.id)
+        path = basePath + "/e_best1.pt".format(epoch)
         if not os.path.exists(basePath):
             os.makedirs(basePath)
         torch.save(saveDict, path)

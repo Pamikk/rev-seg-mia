@@ -8,30 +8,34 @@ import bratsUtils
 import torch.nn.functional as F
 import revtorch.revtorch as rv
 import random
-
-id = random.getrandbits(64)
+encDepth = 1
+EXPERIMENT_NAME = "ReversibleDiaCom{}".format(encDepth)
+id = EXPERIMENT_NAME
 
 #restore experiment
-VALIDATE_ALL = False
-PREDICT = False
-RESTORE_ID = 9765599013846705316
-RESTORE_EPOCH = 439
+#VALIDATE_ALL = False
+#PREDICT = True
+#RESTORE_ID = EXPERIMENT_NAME
+#RESTORE_EPOCH = "best1"
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
 SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
+
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
-EXPERIMENT_NAME = "Reversible NO_NEW60, dropout"
 EPOCHS = 1000
 BATCH_SIZE = 1
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
-SAVE_EVERY_K_EPOCHS = 10
+SAVE_EVERY_K_EPOCHS = 25
 INPLACE = True
 
 #hyperparameters
-#CHANNELS = [36, 72, 144, 288, 576] #normal doubling strategy
-CHANNELS = [60, 120, 240, 360, 480]
+#CHANNELS = [80,160,320,640]
+#CHANNELS = [64,128,256,512]
+#CHANNELS = [96,192,384,768]
+#CHANNELS = [72,144,288,576]
+CHANNELS =[60,120,240,480]
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
@@ -56,7 +60,7 @@ DO_SCALE = True
 DO_FLIP = True
 DO_ELASTIC_AUG = True
 DO_INTENSITY_SHIFT = True
-RANDOM_CROP = [128, 128, 128]
+#RANDOM_CROP = [128, 128, 128]
 
 ROT_DEGREES = 20
 SCALE_FACTOR = 1.1
@@ -76,32 +80,42 @@ if TRAIN_ORIGINAL_CLASSES:
     loss = bratsUtils.bratsDiceLossOriginal5
 else:
     #loss = bratsUtils.bratsDiceLoss
-    def loss(outputs, labels):
-        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
+    if TRAIN_ORIGINAL_CLASSES:
+        loss = bratsUtils.bratsDiceLossOriginal5
+    else:
+        def loss(outputs, labels):
+            f = torch.nn.BCELoss(reduction='mean')
+            return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True).mean()+10*f(outputs,labels)
 
 
 class ResidualInner(nn.Module):
-    def __init__(self, channels, groups):
+    def __init__(self, channels, groups,dia):
         super(ResidualInner, self).__init__()
         self.gn = nn.GroupNorm(groups, channels)
-        self.conv = nn.Conv3d(channels, channels, 3, padding=1, bias=False)
+        if dia:
+            dialation = 2
+            pad = 2
+        else:
+            dialation = 1
+            pad = 1
+        self.conv = nn.Conv3d(channels, channels, 3, padding=pad, bias=False,dilation=dialation)
 
     def forward(self, x):
         x = self.conv(F.leaky_relu(self.gn(x), inplace=INPLACE))
         return x
 
-def makeReversibleSequence(channels):
+def makeReversibleSequence(channels,dia):
     innerChannels = channels // 2
     groups = CHANNELS[0] // 2
-    fBlock = ResidualInner(innerChannels, groups)
-    gBlock = ResidualInner(innerChannels, groups)
+    fBlock = ResidualInner(innerChannels, groups,dia)
+    gBlock = ResidualInner(innerChannels, groups,dia)
     #gBlock = nn.Sequential()
     return rv.ReversibleBlock(fBlock, gBlock)
 
-def makeReversibleComponent(channels, blockCount):
+def makeReversibleComponent(channels, blockCount,dia):
     modules = []
     for i in range(blockCount):
-        modules.append(makeReversibleSequence(channels))
+        modules.append(makeReversibleSequence(channels,dia))
     return rv.ReversibleSequence(nn.ModuleList(modules))
 
 def getChannelsAtIndex(index):
@@ -110,24 +124,24 @@ def getChannelsAtIndex(index):
     return CHANNELS[index]
 
 class EncoderModule(nn.Module):
-    def __init__(self, inChannels, outChannels, depth, downsample=True):
+    def __init__(self, inChannels, outChannels, depth, downsample=True,dia=True):
         super(EncoderModule, self).__init__()
         self.downsample = downsample
         if downsample:
             self.conv = nn.Conv3d(inChannels, outChannels, 1)
-        self.reversibleBlocks = makeReversibleComponent(outChannels, depth)
+        self.reversibleBlocks = makeReversibleComponent(outChannels, depth,dia)
 
     def forward(self, x):
         if self.downsample:
-            x = F.max_pool3d(x, 2)
+            x = F.avg_pool3d(x, 2)
             x = self.conv(x) #increase number of channels
         x = self.reversibleBlocks(x)
         return x
 
 class DecoderModule(nn.Module):
-    def __init__(self, inChannels, outChannels, depth, upsample=True):
+    def __init__(self, inChannels, outChannels, depth, upsample=True,dia=True):
         super(DecoderModule, self).__init__()
-        self.reversibleBlocks = makeReversibleComponent(inChannels, depth)
+        self.reversibleBlocks = makeReversibleComponent(inChannels, depth,dia)
         self.upsample = upsample
         if self.upsample:
             self.conv = nn.Conv3d(inChannels, outChannels, 1)
@@ -142,23 +156,24 @@ class DecoderModule(nn.Module):
 class NoNewReversible(nn.Module):
     def __init__(self):
         super(NoNewReversible, self).__init__()
-        depth = 1
+        encoderDepth = encDepth
+        decoderDepth = 1
         self.levels = 5
 
-        self.firstConv = nn.Conv3d(4, CHANNELS[0], 3, padding=1, bias=False)
+        self.firstConv = nn.Conv3d(1, CHANNELS[0], 3, padding=1, bias=False)
         #self.dropout = nn.Dropout3d(0.2, True)
-        self.lastConv = nn.Conv3d(CHANNELS[0], 3, 1, bias=True)
+        self.lastConv = nn.Conv3d(CHANNELS[0], 2, 1, bias=True)
 
         #create encoder levels
         encoderModules = []
         for i in range(self.levels):
-            encoderModules.append(EncoderModule(getChannelsAtIndex(i - 1), getChannelsAtIndex(i), depth, i != 0))
+            encoderModules.append(EncoderModule(getChannelsAtIndex(i - 1), getChannelsAtIndex(i), encoderDepth, i != 0,i <self.levels-2))
         self.encoders = nn.ModuleList(encoderModules)
 
         #create decoder levels
         decoderModules = []
         for i in range(self.levels):
-            decoderModules.append(DecoderModule(getChannelsAtIndex(self.levels - i - 1), getChannelsAtIndex(self.levels - i - 2), depth, i != (self.levels -1)))
+            decoderModules.append(DecoderModule(getChannelsAtIndex(self.levels - i - 1), getChannelsAtIndex(self.levels - i - 2), decoderDepth, i != (self.levels -1),i>1))
         self.decoders = nn.ModuleList(decoderModules)
 
     def forward(self, x):
@@ -183,4 +198,4 @@ class NoNewReversible(nn.Module):
 net = NoNewReversible()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [200, 300, 400], 0.2)
+lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, threshold=0.0001,patience=30,min_lr=1e-7)

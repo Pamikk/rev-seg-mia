@@ -120,37 +120,6 @@ def prepare_data(input_folder, output_file, input_channels):
 
     logging.info('Parsing image files')
 
-    # Uncomment for calculating the needed image dimension
-    # #get max dimension in z-axis
-    # maxX = 0
-    # maxY = 0
-    # maxZ = 0
-    # maxXCropped = 0
-    # maxYCropped = 0
-    # maxZCropped = 0
-    # i = 0
-    # for train_test in ['test', 'train', 'validation']:
-    #     for folder in file_list[train_test]:
-    #         print("Doing file {}".format(i))
-    #         i += 1
-    #
-    #         baseFilePath = os.path.join(input_folder, folder, folder)
-    #         img_c1, _, img_header = utils.load_nii(baseFilePath + "_t1.nii.gz")
-    #         img_c2, _, _ = utils.load_nii(baseFilePath + "_t1ce.nii.gz")
-    #         img_c3, _, _ = utils.load_nii(baseFilePath + "_t2.nii.gz")
-    #         img_c4, _, _ = utils.load_nii(baseFilePath + "_flair.nii.gz")
-    #         img_dat = np.stack((img_c1, img_c2, img_c3, img_c4), 3)
-    #
-    #         maxX = max(maxX, img_dat.shape[0])
-    #         maxY = max(maxY, img_dat.shape[1])
-    #         maxZ = max(maxZ, img_dat.shape[2])
-    #         img_dat_cropped = crop_volume_allDim(img_dat)
-    #         maxXCropped = max(maxXCropped, img_dat_cropped.shape[0])
-    #         maxYCropped = max(maxYCropped, img_dat_cropped.shape[1])
-    #         maxZCropped = max(maxZCropped, img_dat_cropped.shape[2])
-    # print("Max x: {}, y: {}, z: {}".format(maxX, maxY, maxZ))
-    # print("Max cropped x: {}, y: {}, z: {}".format(maxXCropped, maxYCropped, maxZCropped))
-
     for train_test in ['train', 'test', 'validation']:
 
         write_buffer = 0

@@ -9,20 +9,21 @@ import torch.nn.functional as F
 import revtorch.revtorch as rv
 import random
 
-id = random.getrandbits(64)
+encDepth = 1
+EXPERIMENT_NAME = "ReversibleBCE{}".format(encDepth)
+id = EXPERIMENT_NAME
 
 #restore experiment
 #VALIDATE_ALL = False
-PREDICT = False
-#RESTORE_ID = 380
-#RESTORE_EPOCH = 298
+PREDICT = True
+RESTORE_ID = EXPERIMENT_NAME
+RESTORE_EPOCH = "best1"
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
 SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
-encDepth = 1
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
-EXPERIMENT_NAME = "Reversible BCE {}encoder, 1decoder".format(encDepth)
+
 EPOCHS = 1000
 BATCH_SIZE = 1
 VIRTUAL_BATCHSIZE = 1
@@ -58,7 +59,7 @@ NN_AUGMENTATION = True #Has priority over soft/hard augmentation. Uses nearest-n
 DO_ROTATE = True
 DO_SCALE = True
 DO_FLIP = True
-DO_ELASTIC_AUG = True
+DO_ELASTIC_AUG = False
 DO_INTENSITY_SHIFT = True
 #RANDOM_CROP = [128, 128, 128]
 
@@ -79,7 +80,9 @@ else:
 if TRAIN_ORIGINAL_CLASSES:
     loss = bratsUtils.bratsDiceLossOriginal5
 else:
-    loss = torch.nn.BCELoss(reduction='mean')
+    def loss(outputs, labels):
+        f = torch.nn.BCELoss(reduction='mean')
+        return f(outputs,labels)
 
 
 class ResidualInner(nn.Module):
@@ -186,4 +189,4 @@ class NoNewReversible(nn.Module):
 net = NoNewReversible()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=15)
+lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, threshold=0.0001,patience=30,min_lr=1e-7)

@@ -7,18 +7,18 @@ import torch.nn as nn
 import bratsUtils
 import torch.nn.functional as F
 import random
-
-id = random.getrandbits(64)
+Depth = 1
+EXPERIMENT_NAME = "Baseline"+str(Depth)
+id = EXPERIMENT_NAME
 
 #restore experiment
 #VALIDATE_ALL = False
 #PREDICT = True
-#RESTORE_ID = 13208142648257160921
-#RESTORE_EPOCH = "best"
+#RESTORE_ID = EXPERIMENT_NAME
+#RESTORE_EPOCH = "best1"
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
-Depth = 1
 SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
 EXPERIMENT_NAME = "Baseline"+str(Depth)
@@ -33,6 +33,7 @@ INPLACE = True
 #CHANNELS = [80,160,320,640]
 #CHANNELS = [96,192,384,768]
 CHANNELS =[60,120,240,480]
+#CHANNELS = [64,128,256,512]
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
@@ -55,7 +56,7 @@ NN_AUGMENTATION = True #Has priority over soft/hard augmentation. Uses nearest-n
 DO_ROTATE = True
 DO_SCALE = True
 DO_FLIP = True
-DO_ELASTIC_AUG = False
+DO_ELASTIC_AUG = True
 DO_INTENSITY_SHIFT = True
 #RANDOM_CROP = [128, 128, 128]
 
@@ -78,7 +79,7 @@ if TRAIN_ORIGINAL_CLASSES:
 else:
     #loss = bratsUtils.bratsDiceLoss
     def loss(outputs, labels):
-        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
+        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True).mean()
 
 class ResidualInner(nn.Module):
     def __init__(self, channels, groups):
@@ -173,4 +174,4 @@ class NoNewNet(nn.Module):
 net = NoNewNet()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=15)
+lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, threshold=0.0001,patience=15,min_lr=1e-7)

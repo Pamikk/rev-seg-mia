@@ -8,31 +8,37 @@ import bratsUtils
 import torch.nn.functional as F
 import revtorch.revtorch as rv
 import random
-
-id = random.getrandbits(64)
+import numpy as np
+encDepth = 1
+BATCH_SIZE = 16
+EXPERIMENT_NAME = "ReversibleAllbn{}_{}".format(encDepth,BATCH_SIZE)
+id = EXPERIMENT_NAME
 
 #restore experiment
-VALIDATE_ALL = False
-PREDICT = False
-RESTORE_ID = 9765599013846705316
-RESTORE_EPOCH = 439
+#VALIDATE_ALL = False
+#PREDICT = True
+#RESTORE_ID = EXPERIMENT_NAME
+#RESTORE_EPOCH = 374
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
 SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
+
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
-EXPERIMENT_NAME = "Reversible NO_NEW60, dropout"
 EPOCHS = 1000
-BATCH_SIZE = 1
+
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
-SAVE_EVERY_K_EPOCHS = 10
+SAVE_EVERY_K_EPOCHS = 25
 INPLACE = True
 
 #hyperparameters
-#CHANNELS = [36, 72, 144, 288, 576] #normal doubling strategy
-CHANNELS = [60, 120, 240, 360, 480]
-INITIAL_LR = 1e-4
+#CHANNELS = [80,160,320,640]
+#CHANNELS = [64,128,256,512]
+#CHANNELS = [96,192,384,768]
+#CHANNELS = [72,144,288,576]
+CHANNELS =[60,120,240,480]
+INITIAL_LR = 5e-4
 L2_REGULARIZER = 1e-5
 
 #logging settings
@@ -56,13 +62,13 @@ DO_SCALE = True
 DO_FLIP = True
 DO_ELASTIC_AUG = True
 DO_INTENSITY_SHIFT = True
-RANDOM_CROP = [128, 128, 128]
+#RANDOM_CROP = [128, 128, 128]
 
-ROT_DEGREES = 20
-SCALE_FACTOR = 1.1
+ROT_DEGREES = 15
+SCALE_FACTOR = 1.5
 SIGMA = 10
 MAX_INTENSITY_SHIFT = 0.1
-
+topK=0.3
 if LOG_COMETML:
     if not "LOG_COMETML_EXISTING_EXPERIMENT" in locals():
         experiment = Experiment(api_key="", project_name="", workspace="")
@@ -76,14 +82,27 @@ if TRAIN_ORIGINAL_CLASSES:
     loss = bratsUtils.bratsDiceLossOriginal5
 else:
     #loss = bratsUtils.bratsDiceLoss
-    def loss(outputs, labels):
-        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
+    if TRAIN_ORIGINAL_CLASSES:
+        loss = bratsUtils.bratsDiceLossOriginal5
+    else:
+        def loss(outputs, labels):
+            f = torch.nn.BCELoss(reduction='none')
+            floss = f(outputs,labels)
+            dloss = bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
+            num_voxels = np.prod(floss.shape)
+            res1, _ = torch.topk(floss.view((-1, )), int(num_voxels * topK), sorted=False)
+            num_voxels = np.prod(dloss.shape)
+            res2, _ = torch.topk(dloss.view((-1, )), int(num_voxels * topK), sorted=False)#for batch_size >1
+            if len(res2)==0:
+                return floss.mean()+dloss.mean()+res1.mean()
+            else:
+                return floss.mean()+dloss.mean()+res1.mean()+res2.mean()
 
 
 class ResidualInner(nn.Module):
     def __init__(self, channels, groups):
         super(ResidualInner, self).__init__()
-        self.gn = nn.GroupNorm(groups, channels)
+        self.gn = nn.BatchNorm3d(channels)
         self.conv = nn.Conv3d(channels, channels, 3, padding=1, bias=False)
 
     def forward(self, x):
@@ -119,7 +138,7 @@ class EncoderModule(nn.Module):
 
     def forward(self, x):
         if self.downsample:
-            x = F.max_pool3d(x, 2)
+            x = F.avg_pool3d(x, 2)
             x = self.conv(x) #increase number of channels
         x = self.reversibleBlocks(x)
         return x
@@ -142,23 +161,24 @@ class DecoderModule(nn.Module):
 class NoNewReversible(nn.Module):
     def __init__(self):
         super(NoNewReversible, self).__init__()
-        depth = 1
+        encoderDepth = encDepth
+        decoderDepth = 1
         self.levels = 5
 
-        self.firstConv = nn.Conv3d(4, CHANNELS[0], 3, padding=1, bias=False)
+        self.firstConv = nn.Conv3d(1, CHANNELS[0], 3, padding=1, bias=False)
         #self.dropout = nn.Dropout3d(0.2, True)
-        self.lastConv = nn.Conv3d(CHANNELS[0], 3, 1, bias=True)
+        self.lastConv = nn.Conv3d(CHANNELS[0], 2, 1, bias=True)
 
         #create encoder levels
         encoderModules = []
         for i in range(self.levels):
-            encoderModules.append(EncoderModule(getChannelsAtIndex(i - 1), getChannelsAtIndex(i), depth, i != 0))
+            encoderModules.append(EncoderModule(getChannelsAtIndex(i - 1), getChannelsAtIndex(i), encoderDepth, i != 0))
         self.encoders = nn.ModuleList(encoderModules)
 
         #create decoder levels
         decoderModules = []
         for i in range(self.levels):
-            decoderModules.append(DecoderModule(getChannelsAtIndex(self.levels - i - 1), getChannelsAtIndex(self.levels - i - 2), depth, i != (self.levels -1)))
+            decoderModules.append(DecoderModule(getChannelsAtIndex(self.levels - i - 1), getChannelsAtIndex(self.levels - i - 2), decoderDepth, i != (self.levels -1)))
         self.decoders = nn.ModuleList(decoderModules)
 
     def forward(self, x):
@@ -183,4 +203,4 @@ class NoNewReversible(nn.Module):
 net = NoNewReversible()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [200, 300, 400], 0.2)
+lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, threshold=0.0001,patience=30,min_lr=1e-8)

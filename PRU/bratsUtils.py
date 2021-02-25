@@ -14,15 +14,44 @@ def softDice(pred, target, smoothing=1, nonSquared=False):
     #fix nans
     dice[dice != dice] = dice.new_tensor([1.0])
 
-    return dice.mean()
+    return dice
 
 def dice(pred, target):
     predBin = (pred > 0.5).float()
     return softDice(predBin, target, 0, True).item()
-
 def diceLoss(pred, target, nonSquared=False):
     return 1 - softDice(pred, target, nonSquared=nonSquared)
+def CEL(pred,gt):
+    bs,hs,ws,ds = pred.shape
+    res = torch.tensor([0.0],requires_grad=True)
+    for b in range(bs):
+        for x in range(hs):
+            for y in range(ws):
+                for z in range(ds):
+                    if gt[b,x,y,z]==1:
+                        res[b,x,y,z]=torch.log2(1+torch.exp(pred[b,x,y,z]+pred[gt==0])).sum()
+    return res
 
+
+def CELoss(outputs, labels):
+
+    #bring outputs into correct shape
+    A,P = outputs.chunk(2, dim=1)
+    s = A.shape
+    A = A.view(s[0], s[2], s[3], s[4])
+    P = P.view(s[0], s[2], s[3], s[4])
+
+    # bring masks into correct shape
+
+    Amask,Pmask = labels.chunk(2, dim=1)
+    s = Amask.shape
+    Amask = Amask.view(s[0], s[2], s[3], s[4])
+    Pmask = Pmask.view(s[0], s[2], s[3], s[4])
+
+    #calculate losses
+    ALoss = CEL(A, Amask)
+    PLoss = CEL(P, Pmask)
+    return (PLoss + ALoss) / 2
 def bratsDiceLoss(outputs, labels, nonSquared=False):
 
     #bring outputs into correct shape
@@ -41,7 +70,7 @@ def bratsDiceLoss(outputs, labels, nonSquared=False):
     #calculate losses
     ALoss = diceLoss(A, Amask, nonSquared=nonSquared)
     PLoss = diceLoss(P, Pmask, nonSquared=nonSquared)
-    return (PLoss + ALoss) / 2
+    return torch.cat((ALoss,PLoss))
 
 def bratsDiceLossOriginal5(outputs, labels, nonSquared=False):
     outputList = list(outputs.chunk(5, dim=1))

@@ -8,23 +8,25 @@ import bratsUtils
 import torch.nn.functional as F
 import revtorch.revtorch as rv
 import random
-
-id = random.getrandbits(64)
-
+CHANNELS =[60,120,240,480]
+encDepth = 1
+EXPERIMENT_NAME = "Reversibletest{}".format(encDepth)
+id = EXPERIMENT_NAME
 #restore experiment
 #VALIDATE_ALL = False
 #PREDICT = True
-#RESTORE_ID = 18255049944119055400
-#RESTORE_EPOCH = 
+#RESTORE_ID = EXPERIMENT_NAME
+#RESTORE_EPOCH = "best1"
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
 SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
-encDepth = 1
+
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
-EXPERIMENT_NAME = "Reversible NO_NEW60 {}encoder, 1decoder".format(encDepth)
+
+
 EPOCHS = 1000
-BATCH_SIZE = 1
+BATCH_SIZE = 16
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
 SAVE_EVERY_K_EPOCHS = 25
@@ -35,7 +37,7 @@ INPLACE = True
 #CHANNELS = [64,128,256,512]
 #CHANNELS = [96,192,384,768]
 #CHANNELS = [72,144,288,576]
-CHANNELS =[60,120,240,480]
+
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
@@ -58,7 +60,7 @@ NN_AUGMENTATION = True #Has priority over soft/hard augmentation. Uses nearest-n
 DO_ROTATE = True
 DO_SCALE = True
 DO_FLIP = True
-DO_ELASTIC_AUG = False
+DO_ELASTIC_AUG = True
 DO_INTENSITY_SHIFT = True
 #RANDOM_CROP = [128, 128, 128]
 
@@ -81,7 +83,7 @@ if TRAIN_ORIGINAL_CLASSES:
 else:
     #loss = bratsUtils.bratsDiceLoss
     def loss(outputs, labels):
-        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
+        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True).mean()
 
 
 class ResidualInner(nn.Module):
@@ -188,4 +190,4 @@ class NoNewReversible(nn.Module):
 net = NoNewReversible()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, patience=15)
+lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, threshold=0.0001,patience=30,min_lr=1e-7)

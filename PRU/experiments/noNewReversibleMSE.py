@@ -8,30 +8,36 @@ import bratsUtils
 import torch.nn.functional as F
 import revtorch.revtorch as rv
 import random
-
-id = random.getrandbits(64)
-
+CHANNELS =[60,120,240,480]
+encDepth = 1
+EXPERIMENT_NAME = "ReversibleMSE{}".format(encDepth)
+id = EXPERIMENT_NAME
 #restore experiment
-VALIDATE_ALL = False
-PREDICT = False
-RESTORE_ID = 9765599013846705316
-RESTORE_EPOCH = 439
+#VALIDATE_ALL = False
+#PREDICT = True
+#RESTORE_ID = EXPERIMENT_NAME
+#RESTORE_EPOCH = "best1"
 #LOG_COMETML_EXISTING_EXPERIMENT = ""
 
 #general settings
 SAVE_CHECKPOINTS = True #set to true to create a checkpoint at every epoch
+
 EXPERIMENT_TAGS = ["bugfreeFinalDrop"]
-EXPERIMENT_NAME = "Reversible NO_NEW60, dropout"
+
+
 EPOCHS = 1000
 BATCH_SIZE = 1
 VIRTUAL_BATCHSIZE = 1
 VALIDATE_EVERY_K_EPOCHS = 1
-SAVE_EVERY_K_EPOCHS = 10
+SAVE_EVERY_K_EPOCHS = 25
 INPLACE = True
 
 #hyperparameters
-#CHANNELS = [36, 72, 144, 288, 576] #normal doubling strategy
-CHANNELS = [60, 120, 240, 360, 480]
+#CHANNELS = [80,160,320,640]
+#CHANNELS = [64,128,256,512]
+#CHANNELS = [96,192,384,768]
+#CHANNELS = [72,144,288,576]
+
 INITIAL_LR = 1e-4
 L2_REGULARIZER = 1e-5
 
@@ -56,9 +62,9 @@ DO_SCALE = True
 DO_FLIP = True
 DO_ELASTIC_AUG = True
 DO_INTENSITY_SHIFT = True
-RANDOM_CROP = [128, 128, 128]
+#RANDOM_CROP = [128, 128, 128]
 
-ROT_DEGREES = 20
+ROT_DEGREES = 10
 SCALE_FACTOR = 1.1
 SIGMA = 10
 MAX_INTENSITY_SHIFT = 0.1
@@ -75,9 +81,10 @@ else:
 if TRAIN_ORIGINAL_CLASSES:
     loss = bratsUtils.bratsDiceLossOriginal5
 else:
-    #loss = bratsUtils.bratsDiceLoss
     def loss(outputs, labels):
-        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)
+        f1 = torch.nn.BCELoss(reduction='mean')
+        f2 = torch.nn.MSELoss(reduction='mean')
+        return bratsUtils.bratsDiceLoss(outputs, labels, nonSquared=True)+f1(outputs,labels)+f2(outputs,labels)
 
 
 class ResidualInner(nn.Module):
@@ -119,7 +126,7 @@ class EncoderModule(nn.Module):
 
     def forward(self, x):
         if self.downsample:
-            x = F.max_pool3d(x, 2)
+            x = F.avg_pool3d(x, 2)
             x = self.conv(x) #increase number of channels
         x = self.reversibleBlocks(x)
         return x
@@ -142,23 +149,24 @@ class DecoderModule(nn.Module):
 class NoNewReversible(nn.Module):
     def __init__(self):
         super(NoNewReversible, self).__init__()
-        depth = 1
+        encoderDepth = encDepth
+        decoderDepth = 1
         self.levels = 5
 
-        self.firstConv = nn.Conv3d(4, CHANNELS[0], 3, padding=1, bias=False)
+        self.firstConv = nn.Conv3d(1, CHANNELS[0], 3, padding=1, bias=False)
         #self.dropout = nn.Dropout3d(0.2, True)
-        self.lastConv = nn.Conv3d(CHANNELS[0], 3, 1, bias=True)
+        self.lastConv = nn.Conv3d(CHANNELS[0], 2, 1, bias=True)
 
         #create encoder levels
         encoderModules = []
         for i in range(self.levels):
-            encoderModules.append(EncoderModule(getChannelsAtIndex(i - 1), getChannelsAtIndex(i), depth, i != 0))
+            encoderModules.append(EncoderModule(getChannelsAtIndex(i - 1), getChannelsAtIndex(i), encoderDepth, i != 0))
         self.encoders = nn.ModuleList(encoderModules)
 
         #create decoder levels
         decoderModules = []
         for i in range(self.levels):
-            decoderModules.append(DecoderModule(getChannelsAtIndex(self.levels - i - 1), getChannelsAtIndex(self.levels - i - 2), depth, i != (self.levels -1)))
+            decoderModules.append(DecoderModule(getChannelsAtIndex(self.levels - i - 1), getChannelsAtIndex(self.levels - i - 2), decoderDepth, i != (self.levels -1)))
         self.decoders = nn.ModuleList(decoderModules)
 
     def forward(self, x):
@@ -183,4 +191,4 @@ class NoNewReversible(nn.Module):
 net = NoNewReversible()
 
 optimizer = optim.Adam(net.parameters(), lr=INITIAL_LR, weight_decay=L2_REGULARIZER)
-lr_sheudler = optim.lr_scheduler.MultiStepLR(optimizer, [200, 300, 400], 0.2)
+lr_sheudler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,mode='max', factor=0.5, threshold=0.0001,patience=15,min_lr=1e-7)

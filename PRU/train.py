@@ -3,19 +3,25 @@ import torch
 import bratsDataset
 import segmenter
 import systemsetup
-
-#import experiments.noNewReversible as expConfig
-import experiments.noNewReversibleFat as expConfig
-#import experiments.mybaseline as expConfig
-#import experiments.noNewReversiblebn as expConfig
-
+import argparse
+import experiments
+import experiments.noNewReversibleDia as dia
+import experiments.noNewReversibleDiaCom as diaCom
+import experiments.noNewReversibleFat as rev
+import experiments.mybaseline as base
+import experiments.noNewReversibleFatBCE as BCE
+import experiments.noNewReversibleMSE as MSE
+import experiments.noNewReversibleFatCom as com
+import experiments.noNewReversibleFatBn as bn
+import experiments.noNewReversibleTopK as TopK
+exps={'base':base,'rev':rev,'Dia':dia,'DiaCom':diaCom,'BCE':BCE,'Com':com,'MSE':MSE,'bn':bn,'topk':TopK}
 class bcolors:
     OKGREEN = '\033[92m'
     WARNING = '\033[93m'
     ENDC = '\033[0m'
 
-def main():
-
+def main(args):
+    expConfig=exps[args.exp]
     # setup experiment logging to comet.ml
     if expConfig.LOG_COMETML:
         hyper_params = {"experimentName": expConfig.EXPERIMENT_NAME,
@@ -36,11 +42,9 @@ def main():
         print("Parameters: {:,}".format(paramCount).replace(",", "'"))
 
     #load data
-    randomCrop = expConfig.RANDOM_CROP if hasattr(expConfig, "RANDOM_CROP") else None
+    randomCrop = None
     trainset = bratsDataset.BratsDataset(systemsetup.BRATS_PATH, expConfig, mode="train", randomCrop=randomCrop)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=expConfig.BATCH_SIZE, shuffle=True, pin_memory=False)
-    #trainvalset = bratsDataset.BratsDataset(systemsetup.BRATS_PATH, expConfig, mode="validation")
-    #trainvalloader = torch.utils.data.DataLoader(trainvalset, batch_size=expConfig.BATCH_SIZE, shuffle=False, pin_memory=False)
 
     valset = bratsDataset.BratsDataset(systemsetup.BRATS_PATH, expConfig, mode="validation")
     valloader = torch.utils.data.DataLoader(valset, batch_size=1, shuffle=False, pin_memory=False)
@@ -57,4 +61,7 @@ def main():
         seg.train()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description='PRU Training')
+    parser.add_argument('--exp', default='base', type=str, metavar='PATH',
+                        help='path to latest checkpoint')
+    main(parser.parse_args())
